@@ -1,4 +1,5 @@
 import './globals.css'
+import { Toaster } from 'sonner'
 
 export const metadata = {
   title: 'Intercambio de Navidad',
@@ -10,6 +11,8 @@ export default function RootLayout({ children }) {
     <html lang="es">
       <body suppressHydrationWarning={true}>
         {children}
+        {/* Notificaciones Toast Globales (Estilo Cyberpunk) */}
+        <Toaster position="top-center" richColors theme="dark" />
       </body>
     </html>
   );
