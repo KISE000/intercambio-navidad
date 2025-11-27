@@ -2,80 +2,106 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
-export default function WishForm({ session, onWishAdded }) {
+export default function WishForm({ session, onWishAdded, currentWishes }) {
   const [title, setTitle] = useState('')
   const [link, setLink] = useState('')
-  const [priority, setPriority] = useState('3') // 3 es Baja por defecto
+  const [priority, setPriority] = useState('2')
   const [loading, setLoading] = useState(false)
+
+  // Lógica de límite
+  const myWishesCount = currentWishes.filter(w => w.user_id === session?.user?.id).length
+  const isLimitReached = myWishesCount >= 10
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!title) return
+    if (!title.trim()) return
+    if (isLimitReached) return alert("Límite de 10 deseos alcanzado")
+
     setLoading(true)
+    const { error } = await supabase.from('wishes').insert([
+      { title, link, priority: parseInt(priority), user_id: session.user.id }
+    ])
+    setLoading(false)
 
-    try {
-      // Insertar en la Base de Datos
-      const { error } = await supabase.from('wishes').insert([
-        {
-          title,
-          link,
-          priority: parseInt(priority),
-          user_id: session.user.id // Importante: Vincular al usuario actual
-        }
-      ])
-
-      if (error) throw error
-
-      // Limpiar formulario y avisar al padre que actualice la lista
+    if (error) {
+      alert('Error: ' + error.message)
+    } else {
       setTitle('')
       setLink('')
-      setPriority('3')
-      if (onWishAdded) onWishAdded() 
-
-    } catch (error) {
-      alert('Error al guardar: ' + error.message)
-    } finally {
-      setLoading(false)
+      setPriority('2')
+      if (onWishAdded) onWishAdded()
     }
   }
 
   return (
-    <div style={{ marginBottom: '2rem', padding: '1rem', background: '#f9f9f9', borderRadius: '8px' }}>
-      <h3>🎁 Agregar nuevo deseo</h3>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <input
-          type="text"
-          placeholder="¿Qué te gustaría recibir?"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          required
-          style={{ padding: '8px' }}
-        />
-        
-        <input
-          type="url"
-          placeholder="Link de referencia (Amazon, MercadoLibre...)"
-          value={link}
-          onChange={(e) => setLink(e.target.value)}
-          style={{ padding: '8px' }}
-        />
+    <div className="flex flex-col gap-4">
+      {/* Header Formulario */}
+      <div className="flex justify-between items-center text-xs font-bold uppercase tracking-wider">
+        <span className="text-slate-400">Progreso</span>
+        <span className={`${isLimitReached ? 'text-red-500' : 'text-purple-400'}`}>
+          {myWishesCount} / 10 DESEOS
+        </span>
+      </div>
 
-        <select 
-          value={priority} 
-          onChange={(e) => setPriority(e.target.value)}
-          style={{ padding: '8px' }}
-        >
-          <option value="1">🔥 Prioridad Alta (¡Lo necesito!)</option>
-          <option value="2">🙂 Prioridad Media</option>
-          <option value="3">🤷‍♂️ Prioridad Baja (Si sobra dinero)</option>
-        </select>
+      {/* Barra de progreso visual */}
+      <div className="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden">
+        <div 
+          className={`h-full transition-all duration-500 ${isLimitReached ? 'bg-red-500' : 'bg-purple-500'}`}
+          style={{ width: `${(myWishesCount / 10) * 100}%` }}
+        ></div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5 mt-2">
+        <div>
+          <label className="input-label">🎁 ¿Qué te gustaría?</label>
+          <input
+            className="cyber-input"
+            type="text"
+            placeholder="Ej. Taza de café gigante"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            disabled={isLimitReached}
+            maxLength={50}
+            required
+          />
+        </div>
+
+        <div>
+          <label className="input-label">🔗 Enlace (Opcional)</label>
+          <input
+            className="cyber-input"
+            type="url"
+            placeholder="https://..."
+            value={link}
+            onChange={(e) => setLink(e.target.value)}
+            disabled={isLimitReached}
+          />
+        </div>
+
+        <div>
+          <label className="input-label">🔥 Prioridad</label>
+          <div className="relative">
+            <select
+              className="cyber-input appearance-none cursor-pointer"
+              value={priority}
+              onChange={(e) => setPriority(e.target.value)}
+              disabled={isLimitReached}
+            >
+              <option value="1">🔥 ¡Lo necesito mucho!</option>
+              <option value="2">🙂 Me gustaría tenerlo</option>
+            </select>
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
+              ▼
+            </div>
+          </div>
+        </div>
 
         <button 
           type="submit" 
-          disabled={loading}
-          style={{ padding: '10px', background: '#28a745', color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px' }}
+          disabled={loading || isLimitReached}
+          className="btn-primary mt-2"
         >
-          {loading ? 'Guardando...' : 'Agregar a mi lista'}
+          {loading ? 'Enviando...' : isLimitReached ? 'Lista Completa' : 'Agregar a mi Lista'}
         </button>
       </form>
     </div>

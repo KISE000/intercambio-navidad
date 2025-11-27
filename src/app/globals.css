@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-app: #0f172a;
+  --bg-card: #1e293b;
+  --bg-input: #020617;
+  --border-color: #334155;
+  --primary: #8b5cf6;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+}
+
+body {
+  @apply bg-[var(--bg-app)] text-[var(--text-main)] min-h-screen overflow-x-hidden;
+  background-image: radial-gradient(circle at 50% 0%, #1e1b4b 0%, var(--bg-app) 70%);
+}
+
+@layer components {
+  /* Input estandarizado */
+  .cyber-input {
+    @apply w-full bg-slate-950 border border-slate-700 text-slate-200 rounded-lg px-4 py-3 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-all placeholder:text-slate-600;
+  }
+  
+  /* Botón Principal */
+  .btn-primary {
+    @apply w-full py-3 px-4 rounded-lg font-bold text-white shadow-lg transition-transform active:scale-95 bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Tarjetas */
+  .dark-card {
+    @apply bg-slate-800/50 border border-slate-700 rounded-2xl shadow-xl backdrop-blur-sm;
+  }
+  
+  /* Etiquetas de formulario */
+  .input-label {
+    @apply block text-xs font-bold text-slate-500 uppercase mb-2 tracking-wider;
+  }
+}
+
+/* Utilidad para la nieve */
+.animate-fall {
+  animation: fall 10s linear infinite;
+}

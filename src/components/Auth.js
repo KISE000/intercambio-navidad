@@ -1,5 +1,4 @@
-'use client' // Esto indica que este componente usa interactividad (clicks, estado)
-
+'use client'
 import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
@@ -7,8 +6,8 @@ export default function Auth() {
   const [loading, setLoading] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [fullName, setFullName] = useState('') // Nombre para el intercambio
-  const [isSignUp, setIsSignUp] = useState(false) // Alternar entre Login y Registro
+  const [fullName, setFullName] = useState('')
+  const [isSignUp, setIsSignUp] = useState(false)
   const [msg, setMsg] = useState('')
 
   const handleAuth = async (e) => {
@@ -18,26 +17,20 @@ export default function Auth() {
 
     try {
       if (isSignUp) {
-        // Lógica de REGISTRO
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: {
-            data: { full_name: fullName }, // Esto activa nuestro Trigger en la BD
-          },
+          options: { data: { full_name: fullName } },
         })
         if (error) throw error
-        setMsg('¡Registro exitoso! Ya puedes iniciar sesión.')
-        setIsSignUp(false) // Cambiar a vista de login
+        setMsg('¡Registro exitoso! Revisa tu correo o inicia sesión.')
+        setIsSignUp(false)
       } else {
-        // Lógica de LOGIN
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
         })
         if (error) throw error
-        // Si el login es correcto, Supabase actualiza la sesión automáticamente
-        // y la página se recargará o actualizará el estado (lo veremos en el siguiente paso)
       }
     } catch (error) {
       setMsg(error.message)
@@ -47,56 +40,84 @@ export default function Auth() {
   }
 
   return (
-    <div style={{ maxWidth: '400px', margin: '0 auto', padding: '20px', border: '1px solid #ccc', borderRadius: '8px' }}>
-      <h2>{isSignUp ? 'Registro Intercambio' : 'Iniciar Sesión'}</h2>
-      
-      <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+    <div className="w-full max-w-md mx-auto relative z-10">
+      <div className="dark-card p-8 border-purple-500/30">
         
-        {/* Solo pedimos nombre si es Registro */}
-        {isSignUp && (
-          <input
-            type="text"
-            placeholder="Tu nombre (Ej. Juan Pérez)"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            required
-            style={{ padding: '8px' }}
-          />
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="text-6xl mb-4 filter drop-shadow-lg animate-bounce">
+            {isSignUp ? '👨‍👩‍👧‍👦' : '🎅'}
+          </div>
+          <h2 className="text-2xl font-bold text-yellow-400 mb-2">
+            {isSignUp ? '¡Bienvenido a la Villa!' : '¡Hola de nuevo!'}
+          </h2>
+          <p className="text-slate-400 text-sm">
+            {isSignUp ? 'Crea tu cuenta para participar' : 'Ingresa para ver qué te traerá Santa'}
+          </p>
+        </div>
+
+        {/* Formulario */}
+        <form onSubmit={handleAuth} className="space-y-5">
+          {isSignUp && (
+            <div>
+              <label className="input-label">👤 Nombre Completo</label>
+              <input
+                className="cyber-input"
+                type="text"
+                placeholder="Ej. Rodolfo el Reno"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                required
+              />
+            </div>
+          )}
+
+          <div>
+            <label className="input-label">✉️ Usuario (Email)</label>
+            <input
+              className="cyber-input"
+              type="email"
+              placeholder="correo@ejemplo.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+          
+          <div>
+            <label className="input-label">🔒 Contraseña</label>
+            <input
+              className="cyber-input"
+              type="password"
+              placeholder="••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+
+          <button type="submit" className="btn-primary" disabled={loading}>
+            {loading ? 'Procesando...' : (isSignUp ? 'Crear mi carta' : 'Ingresar')}
+          </button>
+        </form>
+
+        {/* Mensajes de error/éxito */}
+        {msg && (
+          <div className="mt-4 p-3 bg-slate-900/50 rounded border border-red-500/50 text-red-400 text-center text-sm">
+            {msg}
+          </div>
         )}
 
-        <input
-          type="email"
-          placeholder="Correo electrónico"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          style={{ padding: '8px' }}
-        />
-        
-        <input
-          type="password"
-          placeholder="Contraseña"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          style={{ padding: '8px' }}
-        />
-
-        <button type="submit" disabled={loading} style={{ padding: '10px', background: '#0070f3', color: 'white', border: 'none', cursor: 'pointer' }}>
-          {loading ? 'Cargando...' : (isSignUp ? 'Registrarse' : 'Entrar')}
-        </button>
-      </form>
-
-      {msg && <p style={{ color: 'red', marginTop: '10px' }}>{msg}</p>}
-
-      <p style={{ marginTop: '20px', fontSize: '0.9rem' }}>
-        {isSignUp ? '¿Ya tienes cuenta?' : '¿No tienes cuenta?'}
-        <button 
-            onClick={() => { setIsSignUp(!isSignUp); setMsg('') }} 
-            style={{ background: 'none', border: 'none', color: 'blue', cursor: 'pointer', textDecoration: 'underline' }}>
-          {isSignUp ? 'Inicia Sesión' : 'Regístrate aquí'}
-        </button>
-      </p>
+        {/* Toggle Login/Registro */}
+        <div className="text-center mt-8">
+          <button 
+              onClick={() => { setIsSignUp(!isSignUp); setMsg('') }} 
+              className="text-purple-400 hover:text-purple-300 text-sm font-semibold hover:underline transition-colors"
+          >
+            {isSignUp ? '¿Ya tienes cuenta? Inicia Sesión' : '¿No tienes cuenta? Regístrate'}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

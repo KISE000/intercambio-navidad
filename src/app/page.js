@@ -1,82 +1,166 @@
-'use client'
-import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '../lib/supabaseClient'
-import Auth from '../components/Auth'
-import WishForm from '../components/WishForm'
-import WishList from '../components/WishList'
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '../lib/supabaseClient';
+import Auth from '../components/Auth';
+import WishForm from '../components/WishForm';
+import WishList from '../components/WishList';
 
 export default function Home() {
-  const [session, setSession] = useState(null)
-  const [wishes, setWishes] = useState([])
-  const [loadingWishes, setLoadingWishes] = useState(false)
+  const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [wishes, setWishes] = useState([]);
+  const [snowflakes, setSnowflakes] = useState([]);
 
-  // Función para cargar deseos (con JOIN a perfiles para ver nombres)
+  // --- Efecto de Nieve ---
+  useEffect(() => {
+    // Generar copos solo en el cliente para evitar mismatch de hidratación
+    const flakes = Array.from({ length: 40 }).map((_, i) => ({
+      id: i,
+      left: Math.random() * 100 + '%',
+      animationDuration: Math.random() * 5 + 5 + 's',
+      animationDelay: Math.random() * 5 + 's',
+      opacity: Math.random() * 0.5 + 0.3
+    }));
+    setSnowflakes(flakes);
+  }, []);
+
+  const SnowBackground = () => (
+    <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+      {snowflakes.map((flake) => (
+        <div
+          key={flake.id}
+          className="absolute text-white select-none animate-fall"
+          style={{
+            top: '-20px',
+            left: flake.left,
+            animationDuration: flake.animationDuration,
+            animationDelay: flake.animationDelay,
+            opacity: flake.opacity,
+            fontSize: '1.2rem',
+          }}
+        >
+          ❄
+        </div>
+      ))}
+    </div>
+  );
+
+  // --- Lógica Supabase ---
   const fetchWishes = useCallback(async () => {
-    setLoadingWishes(true)
     const { data, error } = await supabase
       .from('wishes')
-      .select(`
-        *,
-        profiles ( username )
-      `)
-      .order('created_at', { ascending: false })
+      .select('*, profiles(username)')
+      .order('created_at', { ascending: false });
 
-    if (error) console.error('Error cargando deseos:', error)
-    else setWishes(data)
-    
-    setLoadingWishes(false)
-  }, [])
+    if (error) console.error('Error fetching wishes:', error);
+    else setWishes(data || []);
+  }, []);
 
-  // Manejo de sesión
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      if (session) fetchWishes() // Cargar deseos si hay sesión
-    })
+    let mounted = true;
+    async function getInitialSession() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (mounted) {
+        setSession(session);
+        if (session) await fetchWishes();
+        setLoading(false);
+      }
+    }
+    getInitialSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-      if (session) fetchWishes()
-    })
+      setSession(session);
+      if (session) fetchWishes();
+      else setWishes([]);
+      setLoading(false);
+    });
 
-    return () => subscription.unsubscribe()
-  }, [fetchWishes])
+    return () => { mounted = false; subscription.unsubscribe(); };
+  }, [fetchWishes]);
 
-  // Vista No Logueado
-  if (!session) {
+  // --- Renderizado Condicional ---
+
+  if (loading) {
     return (
-      <main style={{ padding: '2rem', display: 'flex', justifyContent: 'center' }}>
-         <div style={{ width: '100%', maxWidth: '400px' }}>
-            <h1 style={{ textAlign: 'center' }}>🎄 Intercambio</h1>
-            <Auth />
-         </div>
-      </main>
-    )
+      <div className="min-h-screen flex items-center justify-center bg-[var(--bg-app)] text-cyan-400">
+        <SnowBackground />
+        <div className="flex flex-col items-center gap-4 z-10">
+          <div className="h-10 w-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="font-mono text-sm animate-pulse">Conectando con el Polo Norte...</p>
+        </div>
+      </div>
+    );
   }
 
-  // Vista Logueado
+  if (!session) {
+    return (
+      <main className="min-h-screen flex items-center justify-center p-4 bg-[var(--bg-app)] relative overflow-hidden">
+        <SnowBackground />
+        <Auth />
+      </main>
+    );
+  }
+
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h2>Hola, {session.user.email.split('@')[0]} 👋</h2>
-        <button 
-          onClick={() => supabase.auth.signOut()}
-          style={{ padding: '8px 16px', background: '#333', color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px' }}
-        >
-          Salir
-        </button>
-      </header>
+    <div className="min-h-screen bg-[var(--bg-app)] relative font-sans">
+      <SnowBackground />
+      <div className="relative z-10 max-w-6xl mx-auto px-4 py-6 md:py-10">
+        
+        {/* Navbar / Header */}
+        <header className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8 pb-6 border-b border-slate-700/50">
+          <h1 className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-amber-500">
+            🎄 Intercambio Cyberpunk
+          </h1>
+          <div className="flex items-center gap-4 bg-slate-900/50 px-4 py-2 rounded-lg border border-slate-800">
+            <span className="text-xs font-mono text-purple-300 hidden md:block">
+              {session.user.email}
+            </span>
+            <div className="h-4 w-px bg-slate-700 mx-2 hidden md:block"></div>
+            <button
+              onClick={() => supabase.auth.signOut()}
+              className="text-xs text-slate-400 hover:text-white transition-colors uppercase tracking-wider font-bold"
+            >
+              Salir
+            </button>
+          </div>
+        </header>
 
-      <WishForm session={session} onWishAdded={fetchWishes} />
+        {/* Layout Principal */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          {/* Columna Izquierda: Formulario (Sticky) */}
+          <aside className="lg:col-span-4">
+             <div className="lg:sticky lg:top-8 bg-slate-800/40 p-6 rounded-xl border border-slate-700 backdrop-blur-sm shadow-xl">
+               <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                 <span className="text-purple-400">⚡</span> Agregar Deseo
+               </h2>
+               <WishForm 
+                  session={session} 
+                  onWishAdded={fetchWishes} 
+                  currentWishes={wishes} 
+               />
+             </div>
+          </aside>
 
-      <hr style={{ margin: '30px 0', opacity: 0.2 }} />
-
-      <h3>📋 Lista de Deseos del Grupo</h3>
-      {loadingWishes ? (
-        <p>Cargando deseos...</p>
-      ) : (
-        <WishList wishes={wishes} currentUser={session.user} onDelete={fetchWishes} />
-      )}
+          {/* Columna Derecha: Feed de Deseos */}
+          <section className="lg:col-span-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <span>🎁</span> Muro de Deseos
+              </h2>
+              <span className="text-xs bg-slate-800 text-slate-300 px-3 py-1 rounded-full border border-slate-700 shadow-inner">
+                {wishes.length} ITEMS
+              </span>
+            </div>
+            <WishList 
+              wishes={wishes} 
+              currentUser={session.user} 
+              onDelete={fetchWishes} 
+            />
+          </section>
+        </div>
+      </div>
     </div>
-  )
+  );
 }

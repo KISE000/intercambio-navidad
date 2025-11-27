@@ -5,77 +5,82 @@ export default function WishList({ wishes, currentUser, onDelete }) {
   
   const handleDelete = async (id) => {
     if (!confirm('¿Seguro que quieres borrar este deseo?')) return
-
     const { error } = await supabase.from('wishes').delete().eq('id', id)
-    
-    if (error) {
-      alert('Error: ' + error.message)
-    } else {
-      if (onDelete) onDelete() // Recargar la lista
-    }
+    if (!error && onDelete) onDelete()
   }
 
-  if (!wishes || wishes.length === 0) {
-    return <p style={{ textAlign: 'center', color: '#666' }}>Aún no hay deseos en la lista. ¡Sé el primero!</p>
-  }
+  if (!wishes?.length) return (
+    <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-slate-700 rounded-2xl text-slate-500 bg-slate-900/30">
+      <span className="text-5xl mb-4 grayscale opacity-50">🎄</span>
+      <p className="font-medium">Aún no hay deseos en el grupo.</p>
+      <p className="text-sm">¡Sé el primero en agregar uno!</p>
+    </div>
+  )
+
+  const groupedWishes = wishes.reduce((acc, wish) => {
+    const username = wish.profiles?.username || 'Sin Nombre'
+    if (!acc[username]) acc[username] = []
+    acc[username].push(wish)
+    return acc
+  }, {})
 
   return (
-    <div style={{ display: 'grid', gap: '15px', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))' }}>
-      {wishes.map((wish) => {
-        const isMine = wish.user_id === currentUser?.id
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
+      {Object.entries(groupedWishes).map(([username, userWishes]) => {
+        const isMine = userWishes[0].user_id === currentUser.id
         
         return (
-          <div key={wish.id} style={{ 
-            border: isMine ? '2px solid #0070f3' : '1px solid #ddd', 
-            padding: '15px', 
-            borderRadius: '8px',
-            backgroundColor: 'white',
-            position: 'relative'
-          }}>
-            {/* Etiqueta de Usuario */}
-            <div style={{ fontSize: '0.8rem', color: '#888', marginBottom: '5px' }}>
-              {isMine ? '🧞‍♂️ TÚ' : `👤 ${wish.profiles?.username || 'Usuario desconocido'}`}
+          <div key={username} className={`flex flex-col overflow-hidden rounded-2xl border transition-all hover:shadow-2xl ${
+            isMine ? 'bg-slate-800/80 border-purple-500/40 shadow-purple-900/20' : 'bg-slate-900/40 border-slate-800'
+          }`}>
+            
+            {/* Header de Tarjeta */}
+            <div className={`px-5 py-3 border-b flex justify-between items-center ${
+               isMine ? 'bg-purple-900/20 border-purple-500/20' : 'bg-slate-950/50 border-slate-800'
+            }`}>
+              <span className={`font-bold truncate ${isMine ? 'text-purple-300' : 'text-slate-300'}`}>
+                {isMine ? 'Tu Lista' : username}
+              </span>
+              {isMine && (
+                <span className="text-[10px] bg-purple-600 text-white px-2 py-0.5 rounded-full font-bold tracking-wider">
+                  TÚ
+                </span>
+              )}
             </div>
 
-            <h4 style={{ margin: '0 0 10px 0' }}>{wish.title}</h4>
-            
-            {/* Prioridad con colores */}
-            <span style={{ 
-              fontSize: '0.75rem', 
-              padding: '3px 8px', 
-              borderRadius: '12px',
-              background: wish.priority === 1 ? '#ffdede' : wish.priority === 2 ? '#fff3cd' : '#d1e7dd',
-              color: wish.priority === 1 ? '#8a0000' : wish.priority === 2 ? '#856404' : '#0f5132'
-            }}>
-              {wish.priority === 1 ? 'Alta' : wish.priority === 2 ? 'Media' : 'Baja'}
-            </span>
+            {/* Lista de Items */}
+            <div className="p-4 space-y-3">
+              {userWishes.map((wish) => (
+                <div key={wish.id} className="group relative bg-slate-950/50 rounded-lg p-3 border border-slate-800 hover:border-slate-600 transition-colors flex justify-between items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-slate-200 font-medium leading-snug">
+                      {wish.title}
+                    </p>
+                    {wish.link && (
+                      <a href={wish.link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center mt-1 text-xs text-blue-400 hover:text-blue-300 hover:underline">
+                        <span>Ver enlace</span>
+                        <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                      </a>
+                    )}
+                  </div>
 
-            {wish.link && (
-              <div style={{ marginTop: '10px' }}>
-                <a href={wish.link} target="_blank" rel="noopener noreferrer" style={{ color: '#0070f3', fontSize: '0.9rem' }}>
-                  🔗 Ver enlace
-                </a>
-              </div>
-            )}
-
-            {/* Botón Borrar (Solo visible si es MÍO) */}
-            {isMine && (
-              <button 
-                onClick={() => handleDelete(wish.id)}
-                style={{ 
-                  marginTop: '15px', 
-                  width: '100%', 
-                  padding: '5px', 
-                  background: '#ff4444', 
-                  color: 'white', 
-                  border: 'none', 
-                  cursor: 'pointer',
-                  borderRadius: '4px' 
-                }}
-              >
-                Borrar
-              </button>
-            )}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {wish.priority === 1 && <span title="Alta Prioridad" className="text-lg filter drop-shadow">🔥</span>}
+                    {wish.priority === 2 && <span title="Media" className="text-lg opacity-50 grayscale">🙂</span>}
+                    
+                    {isMine && (
+                      <button 
+                        onClick={() => handleDelete(wish.id)}
+                        className="text-slate-600 hover:text-red-400 transition-colors p-1 rounded hover:bg-slate-900"
+                        title="Borrar deseo"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )
       })}
