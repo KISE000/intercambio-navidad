@@ -9,7 +9,7 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
   const [link, setLink] = useState('')
   const [priority, setPriority] = useState('2')
   const [imageFile, setImageFile] = useState(null)
-  const [imagePreview, setImagePreview] = useState(null) // <--- Nuevo estado para preview
+  const [imagePreview, setImagePreview] = useState(null)
   const [loading, setLoading] = useState(false)
   
   const fileInputRef = useRef(null)
@@ -22,7 +22,6 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
     if (imageFile) {
       const objectUrl = URL.createObjectURL(imageFile)
       setImagePreview(objectUrl)
-      // Limpiar memoria cuando el componente se desmonta o cambia el archivo
       return () => URL.revokeObjectURL(objectUrl)
     } else {
       setImagePreview(null)
@@ -41,7 +40,7 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
   }
 
   const clearImage = (e) => {
-    e.preventDefault(); // Evitar que abra el selector de archivos
+    e.preventDefault();
     setImageFile(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
@@ -170,10 +169,8 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
               }`}
             >
               {imagePreview ? (
-                // VISTA CON PREVIEW
                 <div className="relative w-full h-full group/preview">
                   <img src={imagePreview} alt="Preview" className="w-full h-full object-contain p-2" />
-                  {/* Botón para eliminar imagen */}
                   <button 
                     onClick={clearImage}
                     className="absolute top-2 right-2 bg-slate-900/80 text-slate-400 hover:text-red-400 p-1.5 rounded-full opacity-0 group-hover/preview:opacity-100 transition-opacity"
@@ -183,7 +180,6 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
                   </button>
                 </div>
               ) : (
-                // VISTA SIN IMAGEN
                 <div className="flex flex-col items-center justify-center pt-5 pb-6 text-slate-500">
                    <p className="text-3xl mb-2 opacity-50">📷</p>
                    <p className="text-xs">Click para subir foto</p>

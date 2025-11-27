@@ -17,8 +17,9 @@ export default function Home() {
   // Estado para la nieve
   const [snowflakes, setSnowflakes] = useState([]);
 
-  // --- NUEVO ESTADO PARA EL MENÚ ---
+  // --- ESTADOS PARA MENÚS ---
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
   // --- 1. Efecto de Nieve ---
@@ -54,9 +55,10 @@ export default function Home() {
     </div>
   );
 
-  // --- 2. Lógica Supabase ---
+  // --- 2. Lógica Supabase (CORREGIDO) ---
   const fetchWishes = useCallback(async () => {
     if (!selectedGroup) return;
+    
     const { data, error } = await supabase
       .from('wishes')
       .select('*, profiles(username)')
@@ -97,14 +99,25 @@ export default function Home() {
     };
   }, [menuRef]);
 
+  // --- Prevenir scroll cuando el menú móvil está abierto ---
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isMobileMenuOpen]);
+
   // --- CORRECCIÓN CRÍTICA DE LOGOUT ---
   const handleLogout = async () => {
-    // Forzamos la limpieza del estado visual primero
     setSession(null);
     setSelectedGroup(null);
     setWishes([]);
-    
-    // Luego desconectamos de Supabase
+    setIsMobileMenuOpen(false);
+    setIsMenuOpen(false);
     await supabase.auth.signOut();
   };
 
@@ -114,6 +127,12 @@ export default function Home() {
       ? w.user_id === session.user.id 
       : w.user_id !== session.user.id;
   });
+
+  // --- ESTADÍSTICAS PARA HERO ---
+  const myWishesCount = wishes.filter(w => w.user_id === session?.user?.id).length;
+  const othersWishesCount = wishes.filter(w => w.user_id !== session?.user?.id).length;
+  const totalWishes = wishes.length;
+  const progressPercentage = (myWishesCount / 10) * 100;
 
   // --- Renderizado ---
   if (loading) return (
@@ -144,25 +163,37 @@ export default function Home() {
       <SnowBackground />
 
       {/* HEADER TIPO DASHBOARD */}
-      <header className="bg-[#151923]/90 backdrop-blur-md border-b border-white/5 px-6 py-5 flex justify-between items-center sticky top-0 z-50">
-        <div className="flex items-center gap-4">
-          <div className="text-3xl">🎁</div>
+      <header className="bg-[#151923]/90 backdrop-blur-md border-b border-white/5 px-4 md:px-6 py-4 md:py-5 flex justify-between items-center sticky top-0 z-50">
+        <div className="flex items-center gap-3 md:gap-4">
+          <div className="text-2xl md:text-3xl">🎄</div>
           <div>
-            <h1 className="text-xl font-bold text-white tracking-tight">iShop Navidad</h1>
-            <div className="flex items-center gap-2 text-sm text-slate-400 mt-0.5">
-              <span>Mis Grupos</span>
-              <span className="text-slate-600">/</span>
-              <span className="text-purple-400 font-bold uppercase">{selectedGroup.name}</span>
+            <h1 className="text-lg md:text-xl font-bold text-white tracking-tight">iShop Navidad</h1>
+            <div className="flex items-center gap-2 text-xs md:text-sm text-slate-400 mt-0.5">
+              <span className="hidden sm:inline">Mis Grupos</span>
+              <span className="text-slate-600 hidden sm:inline">/</span>
+              <span className="text-purple-400 font-bold uppercase truncate max-w-[120px] sm:max-w-none">
+                {selectedGroup.name}
+              </span>
             </div>
           </div>
         </div>
 
-        {/* --- MENÚ DE USUARIO (DROPDOWN MÁS GRANDE) --- */}
-        <div className="relative" ref={menuRef}>
+        {/* --- BOTÓN HAMBURGUESA (MÓVIL) --- */}
+        <button 
+          onClick={() => setIsMobileMenuOpen(true)}
+          className="md:hidden w-10 h-10 rounded-lg bg-[#0B0E14] border border-white/5 flex items-center justify-center hover:border-purple-500/50 transition-colors"
+          aria-label="Abrir menú"
+        >
+          <svg className="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+
+        {/* --- MENÚ DROPDOWN (DESKTOP) --- */}
+        <div className="hidden md:block relative" ref={menuRef}>
            <button 
              onClick={() => setIsMenuOpen(!isMenuOpen)}
-             // Se aumentó el padding, el tamaño del avatar y el tamaño del texto
-             className={`hidden md:flex items-center gap-4 bg-[#0B0E14] border border-white/5 rounded-full pl-2 pr-6 py-2 hover:border-purple-500/50 transition-all ${isMenuOpen ? 'ring-2 ring-purple-500/20 border-purple-500/50' : ''}`}
+             className={`flex items-center gap-4 bg-[#0B0E14] border border-white/5 rounded-full pl-2 pr-6 py-2 hover:border-purple-500/50 transition-all ${isMenuOpen ? 'ring-2 ring-purple-500/20 border-purple-500/50' : ''}`}
            >
              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center text-sm font-bold text-white shadow-lg shadow-purple-900/50">
                {session.user.email[0].toUpperCase()}
@@ -171,7 +202,6 @@ export default function Home() {
              <span className={`text-sm text-slate-500 transition-transform duration-300 ${isMenuOpen ? 'rotate-180' : ''}`}>▼</span>
            </button>
 
-           {/* Dropdown Content (Más ancho y con más padding) */}
            {isMenuOpen && (
              <div className="absolute right-0 top-full mt-4 w-80 bg-[#1A1F2E] border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 origin-top-right z-50">
                <div className="px-6 py-5 border-b border-white/5 bg-[#151923]/50">
@@ -188,7 +218,7 @@ export default function Home() {
                  </button>
                  
                  <button 
-                   onClick={() => { handleLogout(); setIsMenuOpen(false); }}
+                   onClick={handleLogout}
                    className="w-full text-left px-4 py-3 text-base text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl flex items-center gap-3 transition-colors group"
                  >
                    <span className="text-xl group-hover:scale-110 transition-transform">🚪</span> Cerrar Sesión
@@ -199,6 +229,168 @@ export default function Home() {
         </div>
       </header>
 
+      {/* --- MENÚ LATERAL MÓVIL (SLIDE-IN) --- */}
+      {isMobileMenuOpen && (
+        <>
+          {/* Overlay */}
+          <div 
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] animate-in fade-in duration-200"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+          
+          {/* Panel Lateral */}
+          <div className="fixed top-0 right-0 bottom-0 w-80 max-w-[85vw] bg-[#151923] border-l border-white/10 z-[70] shadow-2xl animate-in slide-in-from-right duration-300">
+            
+            {/* Header del Panel */}
+            <div className="p-6 border-b border-white/5 bg-[#0B0E14]/50 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-white">Menú</h2>
+              <button 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="w-10 h-10 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
+                aria-label="Cerrar menú"
+              >
+                <svg className="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Info del Usuario */}
+            <div className="p-6 border-b border-white/5">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center text-xl font-bold text-white shadow-lg shadow-purple-900/50">
+                  {session.user.email[0].toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-slate-500 font-bold uppercase tracking-wider mb-1">Mi Cuenta</p>
+                  <p className="text-base text-white font-medium truncate">{session.user.email}</p>
+                </div>
+              </div>
+              
+              <div className="bg-[#0B0E14]/50 rounded-xl p-3 border border-white/5">
+                <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Grupo Actual</p>
+                <p className="text-sm text-purple-400 font-bold">{selectedGroup.name}</p>
+              </div>
+            </div>
+
+            {/* Opciones */}
+            <div className="p-4 space-y-2">
+              <button 
+                onClick={() => { setSelectedGroup(null); setIsMobileMenuOpen(false); }}
+                className="w-full text-left px-4 py-4 text-base text-slate-300 hover:text-white hover:bg-white/5 rounded-xl flex items-center gap-3 transition-colors group"
+              >
+                <span className="text-2xl group-hover:scale-110 transition-transform">🔄</span>
+                <span>Cambiar de Grupo</span>
+              </button>
+              
+              <button 
+                onClick={handleLogout}
+                className="w-full text-left px-4 py-4 text-base text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl flex items-center gap-3 transition-colors group"
+              >
+                <span className="text-2xl group-hover:scale-110 transition-transform">🚪</span>
+                <span>Cerrar Sesión</span>
+              </button>
+            </div>
+
+            {/* Footer del Panel */}
+            <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-white/5 bg-[#0B0E14]/50">
+              <p className="text-xs text-slate-600 text-center">iShop Navidad v1.0</p>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ===== HERO SECTION ===== */}
+      <div className="relative z-10 max-w-4xl mx-auto px-4 mt-8 mb-12">
+        <div className="relative group">
+          {/* Glow Effect */}
+          <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 rounded-3xl opacity-20 group-hover:opacity-30 transition duration-500 blur-xl"></div>
+          
+          {/* Hero Card */}
+          <div className="relative bg-gradient-to-br from-[#151923] to-[#0B0E14] rounded-3xl p-8 md:p-10 border border-white/10 shadow-2xl overflow-hidden">
+            
+            {/* Patrón de Fondo Decorativo */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-full blur-3xl"></div>
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-blue-500/10 to-purple-500/10 rounded-full blur-3xl"></div>
+            
+            {/* Contenido */}
+            <div className="relative z-10">
+              
+              {/* Header con Nombre del Grupo */}
+              <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-3xl shadow-lg shadow-purple-500/30">
+                    🎄
+                  </div>
+                  <div>
+                    <h2 className="text-3xl md:text-4xl font-bold text-white mb-1">
+                      {selectedGroup.name}
+                    </h2>
+                    <p className="text-slate-400 text-sm md:text-base">Lista de deseos navideños</p>
+                  </div>
+                </div>
+                
+                {/* Badge de Progreso */}
+                <div className="bg-[#0B0E14]/80 backdrop-blur-sm border border-white/10 rounded-xl px-5 py-3">
+                  <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Mi Progreso</p>
+                  <p className="text-2xl font-bold">
+                    <span className="text-white">{myWishesCount}</span>
+                    <span className="text-slate-600">/</span>
+                    <span className="text-slate-500">10</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Barra de Progreso */}
+              <div className="mb-6">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-slate-400">Deseos agregados</span>
+                  <span className="text-sm font-bold text-purple-400">{progressPercentage.toFixed(0)}%</span>
+                </div>
+                <div className="h-3 bg-[#0B0E14] rounded-full overflow-hidden border border-white/5">
+                  <div 
+                    className="h-full bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 rounded-full transition-all duration-1000 ease-out shadow-lg shadow-purple-500/50"
+                    style={{ width: `${Math.min(progressPercentage, 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                
+                {/* Mis Deseos */}
+                <div className="bg-[#0B0E14]/50 backdrop-blur-sm border border-purple-500/20 rounded-xl p-4 hover:border-purple-500/40 transition-colors">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-2xl">✏️</span>
+                    <span className="text-xs text-slate-500 uppercase tracking-wider">Mis Deseos</span>
+                  </div>
+                  <p className="text-3xl font-bold text-white">{myWishesCount}</p>
+                </div>
+
+                {/* Deseos del Grupo */}
+                <div className="bg-[#0B0E14]/50 backdrop-blur-sm border border-pink-500/20 rounded-xl p-4 hover:border-pink-500/40 transition-colors">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-2xl">👥</span>
+                    <span className="text-xs text-slate-500 uppercase tracking-wider">Del Grupo</span>
+                  </div>
+                  <p className="text-3xl font-bold text-white">{othersWishesCount}</p>
+                </div>
+
+                {/* Total */}
+                <div className="bg-[#0B0E14]/50 backdrop-blur-sm border border-orange-500/20 rounded-xl p-4 hover:border-orange-500/40 transition-colors">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-2xl">🎯</span>
+                    <span className="text-xs text-slate-500 uppercase tracking-wider">Total</span>
+                  </div>
+                  <p className="text-3xl font-bold text-white">{totalWishes}</p>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* CONTENEDOR PRINCIPAL */}
       <div className="max-w-4xl mx-auto px-4 mt-10 relative z-10">
         
@@ -207,13 +399,13 @@ export default function Home() {
           <div className="bg-[#151923] p-1 rounded-xl border border-white/5 flex w-full max-w-sm relative shadow-xl">
             <button
               onClick={() => setActiveTab('mine')}
-              className={`flex-1 py-3 rounded-lg text-base font-bold transition-all duration-300 relative z-10 flex items-center justify-center gap-2 ${activeTab === 'mine' ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}
+              className={`flex-1 py-3 rounded-lg text-sm md:text-base font-bold transition-all duration-300 relative z-10 flex items-center justify-center gap-2 ${activeTab === 'mine' ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}
             >
               ✏️ Mi Lista
             </button>
             <button
               onClick={() => setActiveTab('others')}
-              className={`flex-1 py-3 rounded-lg text-base font-bold transition-all duration-300 relative z-10 flex items-center justify-center gap-2 ${activeTab === 'others' ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}
+              className={`flex-1 py-3 rounded-lg text-sm md:text-base font-bold transition-all duration-300 relative z-10 flex items-center justify-center gap-2 ${activeTab === 'others' ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}
             >
               👀 Ver Otros
             </button>
@@ -262,14 +454,23 @@ export default function Home() {
 
           {/* VISTA: VER OTROS */}
           {activeTab === 'others' && (
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-               {filteredWishes.length === 0 && (
-                 <div className="col-span-full text-center py-24 text-slate-500 bg-[#151923]/30 rounded-2xl backdrop-blur-sm text-lg">
-                   El grupo está silencioso... sé el primero en invitar a alguien.
-                 </div>
-               )}
-               <WishList wishes={filteredWishes} currentUser={session.user} onDelete={fetchWishes} />
-             </div>
+            <div>
+              <div className="flex items-center gap-4 mb-8">
+                <span className="text-3xl">👥</span>
+                <h2 className="text-2xl font-bold text-white">Deseos del Grupo</h2>
+                <span className="bg-[#151923] text-slate-400 px-3 py-1 rounded-lg text-sm font-mono border border-white/5">
+                  {filteredWishes.length}
+                </span>
+              </div>
+
+              {filteredWishes.length === 0 ? (
+                <div className="col-span-full text-center py-24 text-slate-500 bg-[#151923]/30 rounded-2xl backdrop-blur-sm text-lg">
+                  El grupo está silencioso... sé el primero en invitar a alguien.
+                </div>
+              ) : (
+                <WishList wishes={filteredWishes} currentUser={session.user} onDelete={fetchWishes} />
+              )}
+            </div>
           )}
         </div>
       </div>
