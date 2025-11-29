@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { useRouter } from 'next/navigation'; // <--- 1. IMPORTAR ROUTER
+import { useRouter } from 'next/navigation';
 import Auth from '../components/Auth';
 import WishForm from '../components/WishForm';
 import WishList from '../components/WishList';
 import WishListSkeleton from '../components/WishListSkeleton';
 import GroupSelector from '../components/GroupSelector';
+import Avatar from '../components/Avatar'; 
+import AvatarSelector from '../components/AvatarSelector'; // <--- IMPORTACIÓN DEL SELECTOR
 
 export default function Home() {
   const [session, setSession] = useState(null);
@@ -17,7 +19,7 @@ export default function Home() {
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [activeTab, setActiveTab] = useState('mine');
   
-  const router = useRouter(); // <--- 2. INICIALIZAR ROUTER
+  const router = useRouter();
 
   // Estado para la nieve
   const [snowflakes, setSnowflakes] = useState([]);
@@ -25,7 +27,14 @@ export default function Home() {
   // --- ESTADOS PARA MENÚS ---
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isAvatarSelectorOpen, setIsAvatarSelectorOpen] = useState(false); // <--- ESTADO DEL MODAL AVATAR
+  
   const menuRef = useRef(null);
+
+  // --- HELPERS PARA AVATAR ---
+  // Obtienen la configuración guardada o usan valores por defecto (Robot + Email)
+  const getUserAvatarStyle = () => session?.user?.user_metadata?.avatar_style || 'robot';
+  const getUserAvatarSeed = () => session?.user?.user_metadata?.avatar_seed || session?.user?.email;
 
   // --- 1. Efecto de Nieve ---
   useEffect(() => {
@@ -79,7 +88,7 @@ export default function Home() {
     
   }, [selectedGroup]);
 
-  // --- 3. MODIFICACIÓN CRÍTICA AQUÍ (AUTH STATE CHANGE) ---
+  // --- 3. Auth State Change ---
   useEffect(() => {
     let mounted = true;
     
@@ -91,9 +100,9 @@ export default function Home() {
     // Escuchar cambios de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       
-      // >>> CORRECCIÓN: SI ES RECUPERACIÓN DE CONTRASEÑA, REDIRIGIR <<<
+      // Si es recuperación de contraseña, redirigir
       if (event === 'PASSWORD_RECOVERY') {
-        setSession(session); // Establecer sesión para permitir el update
+        setSession(session);
         router.push('/update-password');
         return; 
       }
@@ -104,7 +113,7 @@ export default function Home() {
     });
 
     return () => { mounted = false; subscription.unsubscribe(); };
-  }, [router]); // <--- Añadimos router a las dependencias
+  }, [router]);
 
   useEffect(() => {
     if (session && selectedGroup) fetchWishes();
@@ -191,27 +200,32 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Móvil Trigger */}
+        {/* Móvil Trigger (ACTUALIZADO CON AVATAR PERSONALIZADO) */}
         <button 
           onClick={() => setIsMobileMenuOpen(true)}
           className="md:hidden relative group outline-none"
         >
-          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center text-sm font-bold text-white shadow-lg shadow-purple-900/50 ring-2 ring-white/10 group-active:scale-95 transition-all">
-             {session.user.email[0].toUpperCase()}
-          </div>
+          <Avatar 
+            seed={getUserAvatarSeed()} 
+            style={getUserAvatarStyle()}
+            size="md" 
+            className="group-active:scale-95 transition-transform" 
+          />
         </button>
 
-        {/* Desktop Menu */}
+        {/* Desktop Menu (ACTUALIZADO CON AVATAR PERSONALIZADO) */}
         <div className="hidden md:block relative" ref={menuRef}>
            <button 
              onClick={() => setIsMenuOpen(!isMenuOpen)}
-             className={`flex items-center gap-4 bg-[#0B0E14] border border-white/5 rounded-full pl-2 pr-6 py-2 hover:border-purple-500/50 transition-all ${isMenuOpen ? 'ring-2 ring-purple-500/20 border-purple-500/50' : ''}`}
+             className={`flex items-center gap-3 bg-[#0B0E14] border border-white/5 rounded-full pl-1 pr-6 py-1 hover:border-purple-500/50 transition-all ${isMenuOpen ? 'ring-2 ring-purple-500/20 border-purple-500/50' : ''}`}
            >
-             <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center text-sm font-bold text-white shadow-lg shadow-purple-900/50">
-               {session.user.email[0].toUpperCase()}
-             </div>
-             <span className="text-base font-medium text-slate-300">{session.user.email.split('@')[0]}</span>
-             <span className={`text-sm text-slate-500 transition-transform duration-300 ${isMenuOpen ? 'rotate-180' : ''}`}>▼</span>
+             <Avatar 
+                seed={getUserAvatarSeed()} 
+                style={getUserAvatarStyle()}
+                size="md" 
+             />
+             <span className="text-sm font-medium text-slate-300">{session.user.email.split('@')[0]}</span>
+             <span className={`text-xs text-slate-500 transition-transform duration-300 ${isMenuOpen ? 'rotate-180' : ''}`}>▼</span>
            </button>
 
            {isMenuOpen && (
@@ -221,6 +235,15 @@ export default function Home() {
                  <p className="text-lg text-white font-medium truncate">{session.user.email}</p>
                </div>
                <div className="p-3 space-y-2">
+                 {/* BOTÓN DE CAMBIAR AVATAR */}
+                 <button 
+                    onClick={() => { setIsAvatarSelectorOpen(true); setIsMenuOpen(false); }} 
+                    className="w-full text-left px-4 py-3 text-base text-slate-300 hover:text-white hover:bg-white/5 rounded-xl flex items-center gap-3 transition-colors group"
+                 >
+                    <span className="text-xl group-hover:scale-110 transition-transform">🎅</span> 
+                    Cambiar Avatar
+                 </button>
+                 
                  <button onClick={() => { setSelectedGroup(null); setIsMenuOpen(false); }} className="w-full text-left px-4 py-3 text-base text-slate-300 hover:text-white hover:bg-white/5 rounded-xl flex items-center gap-3 transition-colors group">
                    <span className="text-xl group-hover:scale-110 transition-transform">🔄</span> Cambiar de Grupo
                  </button>
@@ -246,7 +269,13 @@ export default function Home() {
             </div>
             <div className="p-6 border-b border-white/5">
               <div className="flex items-center gap-4 mb-4">
-                <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center text-xl font-bold text-white shadow-lg shadow-purple-900/50">{session.user.email[0].toUpperCase()}</div>
+                {/* AVATAR MENU MOVIL PERSONALIZADO */}
+                <Avatar 
+                    seed={getUserAvatarSeed()} 
+                    style={getUserAvatarStyle()}
+                    size="lg" 
+                />
+                
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-slate-500 font-bold uppercase tracking-wider mb-1">Mi Cuenta</p>
                   <p className="text-base text-white font-medium truncate">{session.user.email}</p>
@@ -258,6 +287,15 @@ export default function Home() {
               </div>
             </div>
             <div className="p-4 space-y-2">
+              {/* BOTÓN MÓVIL CAMBIAR AVATAR */}
+              <button 
+                  onClick={() => { setIsAvatarSelectorOpen(true); setIsMobileMenuOpen(false); }} 
+                  className="w-full text-left px-4 py-4 text-base text-slate-300 hover:text-white hover:bg-white/5 rounded-xl flex items-center gap-3 transition-colors group"
+              >
+                <span className="text-2xl group-hover:scale-110 transition-transform">🎅</span>
+                <span>Personalizar Avatar</span>
+              </button>
+
               <button onClick={() => { setSelectedGroup(null); setIsMobileMenuOpen(false); }} className="w-full text-left px-4 py-4 text-base text-slate-300 hover:text-white hover:bg-white/5 rounded-xl flex items-center gap-3 transition-colors group">
                 <span className="text-2xl group-hover:scale-110 transition-transform">🔄</span><span>Cambiar de Grupo</span>
               </button>
@@ -385,6 +423,17 @@ export default function Home() {
           )}
         </div>
       </div>
+      
+      {/* MODAL SELECTOR DE AVATAR (NUEVO COMPONENTE) */}
+      <AvatarSelector 
+        isOpen={isAvatarSelectorOpen} 
+        onClose={() => setIsAvatarSelectorOpen(false)}
+        currentSession={session}
+        onUpdate={(updatedUser) => {
+          // Actualización optimista de la sesión para ver el cambio inmediato
+          setSession({ ...session, user: updatedUser });
+        }}
+      />
     </div>
   );
 }

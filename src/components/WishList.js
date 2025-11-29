@@ -1,6 +1,7 @@
 import { useState, Fragment, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { toast } from 'sonner';
+import Avatar from './Avatar'; // <--- NUEVA IMPORTACIÓN
 
 export default function WishList({ wishes, currentUser, onDelete }) {
   // Estado para el modal de imagen (Lightbox)
@@ -203,17 +204,15 @@ export default function WishList({ wishes, currentUser, onDelete }) {
               <div className="col-span-full mt-4 first:mt-0">
                   <button 
                     onClick={() => toggleGroup(userGroup.id)}
-                    className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 group ${
+                    className={`w-full flex items-center justify-between p-3 pr-5 rounded-full border transition-all duration-300 group ${
                         isOpen 
                         ? 'bg-purple-900/10 border-purple-500/30 shadow-[0_0_20px_rgba(168,85,247,0.1)]' 
                         : 'bg-[#151923] border-white/5 hover:border-purple-500/30 hover:bg-[#1A1F2E]'
                     }`}
                   >
                     <div className="flex items-center gap-4">
-                        {/* Avatar */}
-                        <span className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg transition-transform duration-300 ${isOpen ? 'bg-gradient-to-tr from-purple-600 to-pink-600 scale-110' : 'bg-slate-800 border border-white/10 group-hover:border-white/30'}`}>
-                           {userGroup.initial}
-                        </span>
+                        {/* AQUI IMPLEMENTAMOS EL AVATAR */}
+                        <Avatar seed={userGroup.id} size="lg" />
                         
                         <div className="text-left">
                             <h3 className={`text-lg font-bold transition-colors tracking-tight ${isOpen ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>
@@ -334,7 +333,6 @@ export default function WishList({ wishes, currentUser, onDelete }) {
                             </button>
                           </div>
                         )}
-                        {/* SI NO ES MÍO, NO MOSTRAMOS NADA EXTRA (SOLO VER) */}
                       </div>
                     </div>
                   </div>
