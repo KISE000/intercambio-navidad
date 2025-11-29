@@ -2,18 +2,23 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { useRouter } from 'next/navigation'; // <--- 1. IMPORTAR ROUTER
 import Auth from '../components/Auth';
 import WishForm from '../components/WishForm';
 import WishList from '../components/WishList';
+import WishListSkeleton from '../components/WishListSkeleton';
 import GroupSelector from '../components/GroupSelector';
 
 export default function Home() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [wishes, setWishes] = useState([]);
+  const [loadingWishes, setLoadingWishes] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [activeTab, setActiveTab] = useState('mine');
   
+  const router = useRouter(); // <--- 2. INICIALIZAR ROUTER
+
   // Estado para la nieve
   const [snowflakes, setSnowflakes] = useState([]);
 
@@ -55,9 +60,11 @@ export default function Home() {
     </div>
   );
 
-  // --- 2. Lógica Supabase (CORREGIDO) ---
+  // --- 2. Lógica Supabase ---
   const fetchWishes = useCallback(async () => {
     if (!selectedGroup) return;
+    
+    setLoadingWishes(true);
     
     const { data, error } = await supabase
       .from('wishes')
@@ -67,26 +74,43 @@ export default function Home() {
 
     if (error) console.error('Error:', error);
     else setWishes(data || []);
+    
+    setTimeout(() => setLoadingWishes(false), 500); 
+    
   }, [selectedGroup]);
 
+  // --- 3. MODIFICACIÓN CRÍTICA AQUÍ (AUTH STATE CHANGE) ---
   useEffect(() => {
     let mounted = true;
+    
+    // Check inicial de sesión
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (mounted) { setSession(session); setLoading(false); }
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+
+    // Escuchar cambios de autenticación
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      
+      // >>> CORRECCIÓN: SI ES RECUPERACIÓN DE CONTRASEÑA, REDIRIGIR <<<
+      if (event === 'PASSWORD_RECOVERY') {
+        setSession(session); // Establecer sesión para permitir el update
+        router.push('/update-password');
+        return; 
+      }
+
       setSession(session);
       if (!session) { setSelectedGroup(null); setWishes([]); }
       setLoading(false);
     });
+
     return () => { mounted = false; subscription.unsubscribe(); };
-  }, []);
+  }, [router]); // <--- Añadimos router a las dependencias
 
   useEffect(() => {
     if (session && selectedGroup) fetchWishes();
   }, [session, selectedGroup, fetchWishes]);
 
-  // --- Lógica de Cierre de Menú al hacer click fuera ---
+  // ... Resto de lógica de UI ...
   useEffect(() => {
     function handleClickOutside(event) {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -94,24 +118,15 @@ export default function Home() {
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => { document.removeEventListener("mousedown", handleClickOutside); };
   }, [menuRef]);
 
-  // --- Prevenir scroll cuando el menú móvil está abierto ---
   useEffect(() => {
-    if (isMobileMenuOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
+    if (isMobileMenuOpen) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = 'unset';
+    return () => { document.body.style.overflow = 'unset'; };
   }, [isMobileMenuOpen]);
 
-  // --- CORRECCIÓN CRÍTICA DE LOGOUT ---
   const handleLogout = async () => {
     setSession(null);
     setSelectedGroup(null);
@@ -128,17 +143,17 @@ export default function Home() {
       : w.user_id !== session.user.id;
   });
 
-  // --- ESTADÍSTICAS PARA HERO ---
+  // --- ESTADÍSTICAS ---
   const myWishesCount = wishes.filter(w => w.user_id === session?.user?.id).length;
   const othersWishesCount = wishes.filter(w => w.user_id !== session?.user?.id).length;
   const totalWishes = wishes.length;
   const progressPercentage = (myWishesCount / 10) * 100;
 
-  // --- Renderizado ---
+  // --- RENDERIZADO ---
   if (loading) return (
     <div className="min-h-screen bg-[#0B0E14] flex items-center justify-center text-purple-500 relative overflow-hidden">
       <SnowBackground />
-      <span className="animate-pulse z-10">Cargando la Villa...</span>
+      <span className="animate-pulse z-10 font-mono">Iniciando sistemas...</span>
     </div>
   );
 
@@ -158,11 +173,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#0B0E14] text-slate-200 font-sans pb-20 relative">
-      
-      {/* FONDO DE NIEVE */}
       <SnowBackground />
 
-      {/* HEADER TIPO DASHBOARD */}
+      {/* HEADER */}
       <header className="bg-[#151923]/90 backdrop-blur-md border-b border-white/5 px-4 md:px-6 py-4 md:py-5 flex justify-between items-center sticky top-0 z-50">
         <div className="flex items-center gap-3 md:gap-4">
           <div className="text-2xl md:text-3xl">🎄</div>
@@ -178,18 +191,17 @@ export default function Home() {
           </div>
         </div>
 
-        {/* --- BOTÓN HAMBURGUESA (MÓVIL) --- */}
+        {/* Móvil Trigger */}
         <button 
           onClick={() => setIsMobileMenuOpen(true)}
-          className="md:hidden w-10 h-10 rounded-lg bg-[#0B0E14] border border-white/5 flex items-center justify-center hover:border-purple-500/50 transition-colors"
-          aria-label="Abrir menú"
+          className="md:hidden relative group outline-none"
         >
-          <svg className="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
+          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center text-sm font-bold text-white shadow-lg shadow-purple-900/50 ring-2 ring-white/10 group-active:scale-95 transition-all">
+             {session.user.email[0].toUpperCase()}
+          </div>
         </button>
 
-        {/* --- MENÚ DROPDOWN (DESKTOP) --- */}
+        {/* Desktop Menu */}
         <div className="hidden md:block relative" ref={menuRef}>
            <button 
              onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -208,19 +220,11 @@ export default function Home() {
                  <p className="text-sm text-slate-500 font-bold uppercase tracking-wider mb-1">Mi Cuenta</p>
                  <p className="text-lg text-white font-medium truncate">{session.user.email}</p>
                </div>
-               
                <div className="p-3 space-y-2">
-                 <button 
-                   onClick={() => { setSelectedGroup(null); setIsMenuOpen(false); }}
-                   className="w-full text-left px-4 py-3 text-base text-slate-300 hover:text-white hover:bg-white/5 rounded-xl flex items-center gap-3 transition-colors group"
-                 >
+                 <button onClick={() => { setSelectedGroup(null); setIsMenuOpen(false); }} className="w-full text-left px-4 py-3 text-base text-slate-300 hover:text-white hover:bg-white/5 rounded-xl flex items-center gap-3 transition-colors group">
                    <span className="text-xl group-hover:scale-110 transition-transform">🔄</span> Cambiar de Grupo
                  </button>
-                 
-                 <button 
-                   onClick={handleLogout}
-                   className="w-full text-left px-4 py-3 text-base text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl flex items-center gap-3 transition-colors group"
-                 >
+                 <button onClick={handleLogout} className="w-full text-left px-4 py-3 text-base text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl flex items-center gap-3 transition-colors group">
                    <span className="text-xl group-hover:scale-110 transition-transform">🚪</span> Cerrar Sesión
                  </button>
                </div>
@@ -229,70 +233,38 @@ export default function Home() {
         </div>
       </header>
 
-      {/* --- MENÚ LATERAL MÓVIL (SLIDE-IN) --- */}
+      {/* MENÚ MÓVIL */}
       {isMobileMenuOpen && (
         <>
-          {/* Overlay */}
-          <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] animate-in fade-in duration-200"
-            onClick={() => setIsMobileMenuOpen(false)}
-          />
-          
-          {/* Panel Lateral */}
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] animate-in fade-in duration-200" onClick={() => setIsMobileMenuOpen(false)} />
           <div className="fixed top-0 right-0 bottom-0 w-80 max-w-[85vw] bg-[#151923] border-l border-white/10 z-[70] shadow-2xl animate-in slide-in-from-right duration-300">
-            
-            {/* Header del Panel */}
-            <div className="p-6 border-b border-white/5 bg-[#0B0E14]/50 flex justify-between items-center">
+             <div className="p-6 border-b border-white/5 bg-[#0B0E14]/50 flex justify-between items-center">
               <h2 className="text-xl font-bold text-white">Menú</h2>
-              <button 
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="w-10 h-10 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
-                aria-label="Cerrar menú"
-              >
-                <svg className="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+              <button onClick={() => setIsMobileMenuOpen(false)} className="w-10 h-10 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors">
+                <svg className="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
-
-            {/* Info del Usuario */}
             <div className="p-6 border-b border-white/5">
               <div className="flex items-center gap-4 mb-4">
-                <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center text-xl font-bold text-white shadow-lg shadow-purple-900/50">
-                  {session.user.email[0].toUpperCase()}
-                </div>
+                <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center text-xl font-bold text-white shadow-lg shadow-purple-900/50">{session.user.email[0].toUpperCase()}</div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-slate-500 font-bold uppercase tracking-wider mb-1">Mi Cuenta</p>
                   <p className="text-base text-white font-medium truncate">{session.user.email}</p>
                 </div>
               </div>
-              
               <div className="bg-[#0B0E14]/50 rounded-xl p-3 border border-white/5">
                 <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Grupo Actual</p>
                 <p className="text-sm text-purple-400 font-bold">{selectedGroup.name}</p>
               </div>
             </div>
-
-            {/* Opciones */}
             <div className="p-4 space-y-2">
-              <button 
-                onClick={() => { setSelectedGroup(null); setIsMobileMenuOpen(false); }}
-                className="w-full text-left px-4 py-4 text-base text-slate-300 hover:text-white hover:bg-white/5 rounded-xl flex items-center gap-3 transition-colors group"
-              >
-                <span className="text-2xl group-hover:scale-110 transition-transform">🔄</span>
-                <span>Cambiar de Grupo</span>
+              <button onClick={() => { setSelectedGroup(null); setIsMobileMenuOpen(false); }} className="w-full text-left px-4 py-4 text-base text-slate-300 hover:text-white hover:bg-white/5 rounded-xl flex items-center gap-3 transition-colors group">
+                <span className="text-2xl group-hover:scale-110 transition-transform">🔄</span><span>Cambiar de Grupo</span>
               </button>
-              
-              <button 
-                onClick={handleLogout}
-                className="w-full text-left px-4 py-4 text-base text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl flex items-center gap-3 transition-colors group"
-              >
-                <span className="text-2xl group-hover:scale-110 transition-transform">🚪</span>
-                <span>Cerrar Sesión</span>
+              <button onClick={handleLogout} className="w-full text-left px-4 py-4 text-base text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl flex items-center gap-3 transition-colors group">
+                <span className="text-2xl group-hover:scale-110 transition-transform">🚪</span><span>Cerrar Sesión</span>
               </button>
             </div>
-
-            {/* Footer del Panel */}
             <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-white/5 bg-[#0B0E14]/50">
               <p className="text-xs text-slate-600 text-center">iShop Navidad v1.0</p>
             </div>
@@ -300,177 +272,116 @@ export default function Home() {
         </>
       )}
 
-      {/* ===== HERO SECTION ===== */}
+      {/* HERO SECTION */}
       <div className="relative z-10 max-w-4xl mx-auto px-4 mt-8 mb-12">
-        <div className="relative group">
-          {/* Glow Effect */}
+         <div className="relative group">
           <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 rounded-3xl opacity-20 group-hover:opacity-30 transition duration-500 blur-xl"></div>
-          
-          {/* Hero Card */}
           <div className="relative bg-gradient-to-br from-[#151923] to-[#0B0E14] rounded-3xl p-8 md:p-10 border border-white/10 shadow-2xl overflow-hidden">
-            
-            {/* Patrón de Fondo Decorativo */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-full blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-blue-500/10 to-purple-500/10 rounded-full blur-3xl"></div>
-            
-            {/* Contenido */}
-            <div className="relative z-10">
-              
-              {/* Header con Nombre del Grupo */}
-              <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-3xl shadow-lg shadow-purple-500/30">
-                    🎄
-                  </div>
-                  <div>
-                    <h2 className="text-3xl md:text-4xl font-bold text-white mb-1">
-                      {selectedGroup.name}
-                    </h2>
-                    <p className="text-slate-400 text-sm md:text-base">Lista de deseos navideños</p>
-                  </div>
+             <div className="relative z-10">
+                <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
+                   <div className="flex items-center gap-4">
+                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-3xl shadow-lg shadow-purple-500/30">🎄</div>
+                      <div>
+                         <h2 className="text-3xl md:text-4xl font-bold text-white mb-1">{selectedGroup.name}</h2>
+                         <p className="text-slate-400 text-sm md:text-base">Lista de deseos navideños</p>
+                      </div>
+                   </div>
+                   <div className="bg-[#0B0E14]/80 backdrop-blur-sm border border-white/10 rounded-xl px-5 py-3">
+                      <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Mi Progreso</p>
+                      <p className="text-2xl font-bold"><span className="text-white">{myWishesCount}</span><span className="text-slate-600">/</span><span className="text-slate-500">10</span></p>
+                   </div>
                 </div>
-                
-                {/* Badge de Progreso */}
-                <div className="bg-[#0B0E14]/80 backdrop-blur-sm border border-white/10 rounded-xl px-5 py-3">
-                  <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Mi Progreso</p>
-                  <p className="text-2xl font-bold">
-                    <span className="text-white">{myWishesCount}</span>
-                    <span className="text-slate-600">/</span>
-                    <span className="text-slate-500">10</span>
-                  </p>
+                <div className="mb-6">
+                   <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm text-slate-400">Deseos agregados</span>
+                      <span className="text-sm font-bold text-purple-400">{progressPercentage.toFixed(0)}%</span>
+                   </div>
+                   <div className="h-3 bg-[#0B0E14] rounded-full overflow-hidden border border-white/5">
+                      <div className="h-full bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 rounded-full transition-all duration-1000 ease-out shadow-lg shadow-purple-500/50" style={{ width: `${Math.min(progressPercentage, 100)}%` }}></div>
+                   </div>
                 </div>
-              </div>
-
-              {/* Barra de Progreso */}
-              <div className="mb-6">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm text-slate-400">Deseos agregados</span>
-                  <span className="text-sm font-bold text-purple-400">{progressPercentage.toFixed(0)}%</span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                   <div className="bg-[#0B0E14]/50 backdrop-blur-sm border border-purple-500/20 rounded-xl p-4 hover:border-purple-500/40 transition-colors">
+                      <div className="flex items-center gap-3 mb-2"><span className="text-2xl">✏️</span><span className="text-xs text-slate-500 uppercase tracking-wider">Mis Deseos</span></div>
+                      <p className="text-3xl font-bold text-white">{myWishesCount}</p>
+                   </div>
+                   <div className="bg-[#0B0E14]/50 backdrop-blur-sm border border-pink-500/20 rounded-xl p-4 hover:border-pink-500/40 transition-colors">
+                      <div className="flex items-center gap-3 mb-2"><span className="text-2xl">👥</span><span className="text-xs text-slate-500 uppercase tracking-wider">Del Grupo</span></div>
+                      <p className="text-3xl font-bold text-white">{othersWishesCount}</p>
+                   </div>
+                   <div className="bg-[#0B0E14]/50 backdrop-blur-sm border border-orange-500/20 rounded-xl p-4 hover:border-orange-500/40 transition-colors">
+                      <div className="flex items-center gap-3 mb-2"><span className="text-2xl">🎯</span><span className="text-xs text-slate-500 uppercase tracking-wider">Total</span></div>
+                      <p className="text-3xl font-bold text-white">{totalWishes}</p>
+                   </div>
                 </div>
-                <div className="h-3 bg-[#0B0E14] rounded-full overflow-hidden border border-white/5">
-                  <div 
-                    className="h-full bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 rounded-full transition-all duration-1000 ease-out shadow-lg shadow-purple-500/50"
-                    style={{ width: `${Math.min(progressPercentage, 100)}%` }}
-                  ></div>
-                </div>
-              </div>
-
-              {/* Stats Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                
-                {/* Mis Deseos */}
-                <div className="bg-[#0B0E14]/50 backdrop-blur-sm border border-purple-500/20 rounded-xl p-4 hover:border-purple-500/40 transition-colors">
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="text-2xl">✏️</span>
-                    <span className="text-xs text-slate-500 uppercase tracking-wider">Mis Deseos</span>
-                  </div>
-                  <p className="text-3xl font-bold text-white">{myWishesCount}</p>
-                </div>
-
-                {/* Deseos del Grupo */}
-                <div className="bg-[#0B0E14]/50 backdrop-blur-sm border border-pink-500/20 rounded-xl p-4 hover:border-pink-500/40 transition-colors">
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="text-2xl">👥</span>
-                    <span className="text-xs text-slate-500 uppercase tracking-wider">Del Grupo</span>
-                  </div>
-                  <p className="text-3xl font-bold text-white">{othersWishesCount}</p>
-                </div>
-
-                {/* Total */}
-                <div className="bg-[#0B0E14]/50 backdrop-blur-sm border border-orange-500/20 rounded-xl p-4 hover:border-orange-500/40 transition-colors">
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="text-2xl">🎯</span>
-                    <span className="text-xs text-slate-500 uppercase tracking-wider">Total</span>
-                  </div>
-                  <p className="text-3xl font-bold text-white">{totalWishes}</p>
-                </div>
-
-              </div>
-            </div>
+             </div>
           </div>
-        </div>
+         </div>
       </div>
 
-      {/* CONTENEDOR PRINCIPAL */}
       <div className="max-w-4xl mx-auto px-4 mt-10 relative z-10">
-        
-        {/* --- TOGGLE SWITCH --- */}
         <div className="flex justify-center mb-12">
           <div className="bg-[#151923] p-1 rounded-xl border border-white/5 flex w-full max-w-sm relative shadow-xl">
-            <button
-              onClick={() => setActiveTab('mine')}
-              className={`flex-1 py-3 rounded-lg text-sm md:text-base font-bold transition-all duration-300 relative z-10 flex items-center justify-center gap-2 ${activeTab === 'mine' ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}
-            >
+            <button onClick={() => setActiveTab('mine')} className={`flex-1 py-3 rounded-lg text-sm md:text-base font-bold transition-all duration-300 relative z-10 flex items-center justify-center gap-2 ${activeTab === 'mine' ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}>
               ✏️ Mi Lista
             </button>
-            <button
-              onClick={() => setActiveTab('others')}
-              className={`flex-1 py-3 rounded-lg text-sm md:text-base font-bold transition-all duration-300 relative z-10 flex items-center justify-center gap-2 ${activeTab === 'others' ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}
-            >
+            <button onClick={() => setActiveTab('others')} className={`flex-1 py-3 rounded-lg text-sm md:text-base font-bold transition-all duration-300 relative z-10 flex items-center justify-center gap-2 ${activeTab === 'others' ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}>
               👀 Ver Otros
             </button>
-            
-            {/* Background Animado del Toggle */}
             <div className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-[#6366f1] rounded-lg transition-transform duration-300 ease-out z-0 shadow-[0_0_15px_rgba(99,102,241,0.4)] ${activeTab === 'mine' ? 'translate-x-0' : 'translate-x-full left-1'}`}></div>
           </div>
         </div>
 
-        {/* --- CONTENIDO PRINCIPAL --- */}
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-10">
           
-          {/* VISTA: MI LISTA */}
-          {activeTab === 'mine' && (
+          {/* RENDERIZADO CONDICIONAL CON SKELETON */}
+          {loadingWishes ? (
+             <WishListSkeleton />
+          ) : (
             <>
-              {/* Formulario */}
-              <WishForm 
-                session={session} 
-                onWishAdded={fetchWishes} 
-                currentWishes={wishes} 
-                groupId={selectedGroup.id} 
-              />
-
-              {/* Lista de Mis Deseos */}
-              <div className="mt-16">
-                <div className="flex items-center gap-4 mb-8">
-                  <span className="text-3xl">📝</span>
-                  <h2 className="text-2xl font-bold text-white">Mis Deseos</h2>
-                  <span className="bg-[#151923] text-slate-400 px-3 py-1 rounded-lg text-sm font-mono border border-white/5">
-                    {filteredWishes.length}
-                  </span>
-                </div>
-
-                {filteredWishes.length === 0 ? (
-                  <div className="border border-dashed border-slate-800 rounded-2xl p-16 text-center bg-[#151923]/50 backdrop-blur-sm">
-                     <div className="text-5xl mb-6">🤷‍♂️</div>
-                     <p className="text-slate-400 text-lg">No has agregado deseos aún.</p>
-                     <p className="text-slate-500 mt-2">¡Usa el formulario de arriba!</p>
+              {activeTab === 'mine' && (
+                <>
+                  <WishForm session={session} onWishAdded={fetchWishes} currentWishes={wishes} groupId={selectedGroup.id} />
+                  <div className="mt-16">
+                    <div className="flex items-center gap-4 mb-8">
+                      <span className="text-3xl">📝</span>
+                      <h2 className="text-2xl font-bold text-white">Mis Deseos</h2>
+                      <span className="bg-[#151923] text-slate-400 px-3 py-1 rounded-lg text-sm font-mono border border-white/5">
+                        {filteredWishes.length}
+                      </span>
+                    </div>
+                    {filteredWishes.length === 0 ? (
+                      <div className="border border-dashed border-slate-800 rounded-2xl p-16 text-center bg-[#151923]/50 backdrop-blur-sm">
+                         <div className="text-5xl mb-6">🤷‍♂️</div>
+                         <p className="text-slate-400 text-lg">No has agregado deseos aún.</p>
+                         <p className="text-slate-500 mt-2">¡Usa el formulario de arriba!</p>
+                      </div>
+                    ) : (
+                      <WishList wishes={filteredWishes} currentUser={session.user} onDelete={fetchWishes} />
+                    )}
                   </div>
-                ) : (
-                  <WishList wishes={filteredWishes} currentUser={session.user} onDelete={fetchWishes} />
-                )}
-              </div>
-            </>
-          )}
-
-          {/* VISTA: VER OTROS */}
-          {activeTab === 'others' && (
-            <div>
-              <div className="flex items-center gap-4 mb-8">
-                <span className="text-3xl">👥</span>
-                <h2 className="text-2xl font-bold text-white">Deseos del Grupo</h2>
-                <span className="bg-[#151923] text-slate-400 px-3 py-1 rounded-lg text-sm font-mono border border-white/5">
-                  {filteredWishes.length}
-                </span>
-              </div>
-
-              {filteredWishes.length === 0 ? (
-                <div className="col-span-full text-center py-24 text-slate-500 bg-[#151923]/30 rounded-2xl backdrop-blur-sm text-lg">
-                  El grupo está silencioso... sé el primero en invitar a alguien.
-                </div>
-              ) : (
-                <WishList wishes={filteredWishes} currentUser={session.user} onDelete={fetchWishes} />
+                </>
               )}
-            </div>
+
+              {activeTab === 'others' && (
+                <div>
+                  <div className="flex items-center gap-4 mb-8">
+                    <span className="text-3xl">👥</span>
+                    <h2 className="text-2xl font-bold text-white">Deseos del Grupo</h2>
+                    <span className="bg-[#151923] text-slate-400 px-3 py-1 rounded-lg text-sm font-mono border border-white/5">
+                      {filteredWishes.length}
+                    </span>
+                  </div>
+                  {filteredWishes.length === 0 ? (
+                    <div className="col-span-full text-center py-24 text-slate-500 bg-[#151923]/30 rounded-2xl backdrop-blur-sm text-lg">
+                      El grupo está silencioso... sé el primero en invitar a alguien.
+                    </div>
+                  ) : (
+                    <WishList wishes={filteredWishes} currentUser={session.user} onDelete={fetchWishes} />
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
