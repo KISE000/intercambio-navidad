@@ -1,16 +1,31 @@
-import { useState, Fragment } from 'react';
+import { useState, Fragment, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { toast } from 'sonner';
 
 export default function WishList({ wishes, currentUser, onDelete }) {
   const [selectedImage, setSelectedImage] = useState(null);
+  
+  // --- ESTADOS PARA EDICIÓN ---
+  const [editingWish, setEditingWish] = useState(null);
+  const [formData, setFormData] = useState({ title: '', details: '', link: '', priority: '2' });
+  const [loadingEdit, setLoadingEdit] = useState(false);
+
+  // Cargar datos al abrir el modal de edición
+  useEffect(() => {
+    if (editingWish) {
+      setFormData({
+        title: editingWish.title || '',
+        details: editingWish.details || '',
+        link: editingWish.link || '',
+        priority: editingWish.priority?.toString() || '2'
+      });
+    }
+  }, [editingWish]);
 
   // --- LÓGICA DE AGRUPACIÓN ---
   const groupWishesByUser = (wishes) => {
     return wishes.reduce((acc, wish) => {
-      // Usamos el ID del usuario como clave para agrupar
       const ownerId = wish.user_id;
-      // Usamos el nombre más completo para el display
       const ownerName = wish.profiles?.full_name || wish.profiles?.username || wish.profiles?.email?.split('@')[0] || 'Anónimo';
       
       if (!acc[ownerId]) {
@@ -26,14 +41,40 @@ export default function WishList({ wishes, currentUser, onDelete }) {
   };
 
   const groupedWishes = groupWishesByUser(wishes);
-  // -------------------------
 
+  // --- HANDLERS ---
   const handleDelete = async (wishId) => {
     if (!window.confirm("¿Estás seguro de borrar este deseo?")) return;
     const { error } = await supabase.from('wishes').delete().eq('id', wishId);
     if (error) toast.error("Error borrando: " + error.message);
     else {
       toast.success("Deseo borrado");
+      if (onDelete) onDelete();
+    }
+  };
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    if (!formData.title.trim()) return;
+    setLoadingEdit(true);
+
+    const { error } = await supabase
+      .from('wishes')
+      .update({
+        title: formData.title,
+        details: formData.details,
+        link: formData.link,
+        priority: parseInt(formData.priority)
+      })
+      .eq('id', editingWish.id);
+
+    setLoadingEdit(false);
+
+    if (error) {
+      toast.error("Error al actualizar: " + error.message);
+    } else {
+      toast.success("¡Deseo actualizado!");
+      setEditingWish(null);
       if (onDelete) onDelete();
     }
   };
@@ -79,7 +120,77 @@ export default function WishList({ wishes, currentUser, onDelete }) {
 
   return (
     <>
-      {/* LIGHTBOX MODAL */}
+      {/* --- MODAL DE EDICIÓN --- */}
+      {editingWish && (
+        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setEditingWish(null)}>
+          <div className="bg-[#151923] border border-purple-500/30 w-full max-w-md rounded-3xl p-8 shadow-2xl relative" onClick={e => e.stopPropagation()}>
+            <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+              ✏️ Editar Deseo
+            </h3>
+            
+            <form onSubmit={handleUpdate} className="space-y-5">
+              <div>
+                <label className="text-xs text-slate-400 font-bold uppercase tracking-wider ml-1">Título</label>
+                <input 
+                  className="w-full bg-[#0B0E14] border border-slate-700 rounded-xl p-3 text-white focus:border-purple-500 outline-none transition-colors"
+                  value={formData.title}
+                  onChange={(e) => setFormData({...formData, title: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="text-xs text-slate-400 font-bold uppercase tracking-wider ml-1">Detalles</label>
+                <textarea 
+                  className="w-full bg-[#0B0E14] border border-slate-700 rounded-xl p-3 text-white focus:border-purple-500 outline-none resize-none h-24 transition-colors"
+                  value={formData.details}
+                  onChange={(e) => setFormData({...formData, details: e.target.value})}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                 <div>
+                    <label className="text-xs text-slate-400 font-bold uppercase tracking-wider ml-1">Prioridad</label>
+                    <select 
+                      className="w-full bg-[#0B0E14] border border-slate-700 rounded-xl p-3 text-white outline-none cursor-pointer"
+                      value={formData.priority}
+                      onChange={(e) => setFormData({...formData, priority: e.target.value})}
+                    >
+                      <option value="1">🔥 Alta</option>
+                      <option value="2">⭐ Media</option>
+                      <option value="3">🧊 Baja</option>
+                    </select>
+                 </div>
+                 <div>
+                    <label className="text-xs text-slate-400 font-bold uppercase tracking-wider ml-1">Link</label>
+                    <input 
+                      className="w-full bg-[#0B0E14] border border-slate-700 rounded-xl p-3 text-white outline-none"
+                      placeholder="https://..."
+                      value={formData.link}
+                      onChange={(e) => setFormData({...formData, link: e.target.value})}
+                    />
+                 </div>
+              </div>
+
+              <div className="flex gap-3 mt-6 pt-4 border-t border-white/10">
+                <button 
+                  type="button"
+                  onClick={() => setEditingWish(null)}
+                  className="flex-1 py-3 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors font-medium"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit"
+                  disabled={loadingEdit}
+                  className="flex-1 py-3 rounded-xl bg-purple-600 text-white font-bold hover:bg-purple-500 transition-colors disabled:opacity-50"
+                >
+                  {loadingEdit ? 'Guardando...' : 'Guardar'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- LIGHTBOX MODAL --- */}
       {selectedImage && (
         <div 
           className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200"
@@ -101,16 +212,15 @@ export default function WishList({ wishes, currentUser, onDelete }) {
         </div>
       )}
 
-      {/* GRID DE CARDS AGRUPADAS */}
+      {/* --- GRID DE CARDS AGRUPADAS --- */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {Object.values(groupedWishes).map((userGroup, groupIndex) => (
-          // Fragmento para evitar romper el grid y renderizar Header + Cards
+          
           <Fragment key={userGroup.name}>
             
-            {/* HEADER DEL USUARIO (Ocupa todas las columnas) */}
+            {/* HEADER DEL USUARIO */}
             <div className="col-span-full mb-3 mt-8" style={{ animationDelay: `${groupIndex * 100}ms` }}>
                 <h3 className="text-2xl font-bold text-white flex items-center gap-4 border-b border-purple-500/50 pb-2">
-                    {/* Avatar del dueño */}
                     <span className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold text-base shadow-lg shadow-purple-900/50">
                        {userGroup.initial}
                     </span>
@@ -119,7 +229,7 @@ export default function WishList({ wishes, currentUser, onDelete }) {
                 </h3>
             </div>
 
-            {/* Mapeo de tarjetas para este usuario (fluirán en la grilla de 3 columnas) */}
+            {/* TARJETAS */}
             {userGroup.wishes.map((wish, wishIndex) => {
               const isMine = currentUser?.id === wish.user_id;
               const priority = getPriorityConfig(wish.priority);
@@ -149,7 +259,7 @@ export default function WishList({ wishes, currentUser, onDelete }) {
                     </div>
                   </div>
 
-                  {/* Imagen Grande (si existe) */}
+                  {/* Imagen Grande */}
                   {wish.image_url && (
                     <div 
                       className="relative h-48 overflow-hidden cursor-pointer group/img"
@@ -161,8 +271,6 @@ export default function WishList({ wishes, currentUser, onDelete }) {
                         className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-110"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-[#151923] to-transparent opacity-60"></div>
-                      
-                      {/* Overlay de Zoom */}
                       <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                         <div className="bg-white/20 backdrop-blur-sm rounded-full p-4 text-white text-3xl">
                           🔍
@@ -174,16 +282,11 @@ export default function WishList({ wishes, currentUser, onDelete }) {
                   {/* Contenido Principal */}
                   <div className="bg-[#151923]/90 backdrop-blur-sm p-6 space-y-4">
                     
-                    {/* Header con Título */}
+                    {/* Título */}
                     <div>
                       <h3 className="font-bold text-xl text-white line-clamp-2 mb-2">
                         {wish.title}
                       </h3>
-                      
-                      {/* Info del Usuario - REMOVIDO DE LA CARD YA QUE ESTÁ EN EL HEADER DE GRUPO */}
-                      <p className="text-sm text-purple-400 font-medium">
-                          {isMine ? 'Tu Deseo' : `Para ${userGroup.name}`}
-                      </p>
                     </div>
 
                     {/* Detalles */}
@@ -210,15 +313,27 @@ export default function WishList({ wishes, currentUser, onDelete }) {
                         )}
                       </div>
                       
-                      {/* Botón Borrar (Solo si es mío) */}
+                      {/* BOTONES DE ACCIÓN (SOLO DUEÑO) */}
                       {isMine && (
-                        <button 
-                          onClick={() => handleDelete(wish.id)}
-                          className="text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all p-2 rounded-lg"
-                          title="Borrar deseo"
-                        >
-                          ✕
-                        </button>
+                        <div className="flex gap-2">
+                          {/* Botón Editar */}
+                          <button 
+                            onClick={() => setEditingWish(wish)}
+                            className="text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 transition-all p-2 rounded-lg"
+                            title="Editar deseo"
+                          >
+                            ✏️
+                          </button>
+                          
+                          {/* Botón Borrar */}
+                          <button 
+                            onClick={() => handleDelete(wish.id)}
+                            className="text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all p-2 rounded-lg"
+                            title="Borrar deseo"
+                          >
+                            ✕
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
