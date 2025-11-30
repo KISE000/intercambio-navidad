@@ -55,7 +55,6 @@ const isNew = (createdAt) => {
 };
 
 // --- SUB-COMPONENTE: TARJETA INDIVIDUAL (ENVUELTO EN MEMO) ---
-// 🛑 FIX: Usamos memo para evitar re-renders innecesarios.
 const MemoizedWishCardItem = memo(function WishCardItem({ wish, isMine, onEdit, onDelete, onImageClick, dragListeners }) {
   const [isExpanded, setIsExpanded] = useState(false);
   
@@ -69,13 +68,10 @@ const MemoizedWishCardItem = memo(function WishCardItem({ wish, isMine, onEdit, 
     <div className={`relative backdrop-blur-md border rounded-3xl overflow-hidden group hover:translate-y-[-2px] transition-all duration-300 flex flex-col h-full ${priority.container}`}>
       <div className={`absolute inset-0 ${priority.gradient} opacity-50 pointer-events-none`}></div>
 
-      {/* --- AGARRADERA (HANDLE / GRIP BAR) --- 
-          Esta es la única zona que activa el Drag & Drop.
-          Permite que el resto de la tarjeta sea "scrollable" en móvil.
-      */}
+      {/* --- AGARRADERA (HANDLE / GRIP BAR) --- */}
       {isMine && (
         <button 
-          {...dragListeners} // <--- AQUÍ SE APLICAN LOS LISTENERS DE DND
+          {...dragListeners}
           className="absolute top-0 inset-x-0 h-10 flex items-start justify-center pt-3 z-30 cursor-grab active:cursor-grabbing touch-none outline-none group/handle"
           aria-label="Arrastrar para ordenar"
         >
@@ -103,14 +99,16 @@ const MemoizedWishCardItem = memo(function WishCardItem({ wish, isMine, onEdit, 
       {/* Imagen */}
       {wish.image_url && (
         <div 
-          className="relative h-56 overflow-hidden cursor-pointer group/img shrink-0 mt-4 mx-4 rounded-2xl border border-white/5 shadow-inner bg-black/20"
+          // FIX VISUAL: Z-index aumentado para que la imagen siempre esté sobre la nieve
+          className="relative h-56 overflow-hidden cursor-pointer group/img shrink-0 mt-4 mx-4 rounded-2xl border border-white/5 shadow-inner bg-black/40 p-2 z-10"
           onClick={() => onImageClick(wish.image_url)}
           onPointerDown={(e) => e.stopPropagation()} 
         >
           <img 
             src={wish.image_url} 
             alt={wish.title}
-            className="w-full h-full object-cover transition-transform duration-700 group-hover/img:scale-110"
+            // FIX VISUAL: Cambiado a object-contain
+            className="w-full h-full object-contain transition-transform duration-700 group-hover/img:scale-110"
           />
           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300 flex items-center justify-center">
              <div className="bg-white/10 backdrop-blur-md rounded-full p-3 text-white border border-white/20 shadow-xl">
@@ -160,7 +158,10 @@ const MemoizedWishCardItem = memo(function WishCardItem({ wish, isMine, onEdit, 
           </div>
           
           {isMine && (
-            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 focus-within:opacity-100">
+            <div 
+              // 🛑 FIX UX MÓVIL: Visibilidad por defecto en pantallas pequeñas
+              className="flex gap-2 opacity-100 md:opacity-0 group-hover:md:opacity-100 transition-opacity duration-200 focus-within:opacity-100 z-10"
+            >
               <button 
                 onClick={(e) => { e.stopPropagation(); onEdit(wish); }}
                 onPointerDown={(e) => e.stopPropagation()}
@@ -202,7 +203,6 @@ function SortableWishCard({ wish, children, disabled }) {
     zIndex: isDragging ? 50 : 'auto',
     opacity: isDragging ? 0.8 : 1,
     scale: isDragging ? 1.05 : 1,
-    // Eliminamos 'touch-none' de aquí para permitir el scroll en el cuerpo de la tarjeta
   };
 
   return (
