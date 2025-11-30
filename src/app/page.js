@@ -71,26 +71,41 @@ export default function Home() {
     </div>
   );
 
-  // --- 2. Lógica Supabase ---
+  // --- 2. Lógica Supabase (OPTIMIZADA) ---
   const fetchWishes = useCallback(async () => {
-    if (!selectedGroup) return;
+    // Validación temprana: si no hay grupo O sesión, no hacer nada
+    if (!selectedGroup || !session) {
+      console.log('⏸️ fetchWishes cancelado: falta grupo o sesión');
+      return;
+    }
+    
     setLoadingWishes(true);
     
-    const { data, error } = await supabase
-      .from('wishes')
-      .select('*, profiles(username, avatar_style, avatar_seed)') 
-      .eq('group_id', selectedGroup.id)
-      .order('position', { ascending: true }) 
-      .order('created_at', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('wishes')
+        .select('*, profiles(username, avatar_style, avatar_seed)') 
+        .eq('group_id', selectedGroup.id)
+        .order('position', { ascending: true }) 
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching wishes:', error);
-    } else {
-      setWishes(data || []);
+      if (error) {
+        console.error('❌ Error fetching wishes:', error);
+        toast.error('Error al cargar deseos');
+        setWishes([]); 
+      } else {
+        console.log(`✅ Cargados ${data?.length || 0} deseos para el grupo "${selectedGroup.name}"`);
+        setWishes(data || []);
+      }
+    } catch (err) {
+      console.error('❌ Excepción en fetchWishes:', err);
+      toast.error('Error de red al cargar deseos');
+      setWishes([]);
+    } finally {
+      setTimeout(() => setLoadingWishes(false), 500);
     }
-    setTimeout(() => setLoadingWishes(false), 500); 
-  }, [selectedGroup]);
-
+  }, [selectedGroup, session]); 
+  
   // --- 3. Auth State Change ---
   useEffect(() => {
     let mounted = true;
@@ -182,15 +197,15 @@ export default function Home() {
 
   // --- Render Conditional ---
   if (loading) return (
-    <div className="min-h-screen bg-[#0B0E14] flex items-center justify-center text-purple-500 relative overflow-hidden"><SnowBackground /><span className="animate-pulse z-10 font-mono">Iniciando sistemas...</span></div>
+    <div className="min-h-screen bg-[#0B0E14] flex items-center justify-center text-purple-500 relative overflow-hidden"><span className="animate-pulse z-10 font-mono">Iniciando sistemas...</span></div>
   );
 
   if (!session) return (
-    <main className="min-h-screen bg-[#0B0E14] flex items-center justify-center relative overflow-hidden"><SnowBackground /><div className="z-10"><Auth /></div></main>
+    <main className="min-h-screen bg-[#0B0E14] flex items-center justify-center relative overflow-hidden"><div className="z-10"><Auth /></div></main>
   );
 
   if (!selectedGroup) return (
-    <main className="min-h-screen bg-[#0B0E14] flex items-center justify-center relative overflow-hidden"><SnowBackground /><div className="z-10 w-full"><GroupSelector session={session} onSelectGroup={setSelectedGroup} onLogout={handleLogout} /></div></main>
+    <main className="min-h-screen bg-[#0B0E14] flex items-center justify-center relative overflow-hidden"><div className="z-10 w-full"><GroupSelector session={session} onSelectGroup={setSelectedGroup} onLogout={handleLogout} /></div></main>
   );
 
   // Check si soy admin del grupo actual
@@ -198,6 +213,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#0B0E14] text-slate-200 font-sans pb-20 relative selection:bg-purple-500/30">
+      {/* 🛑 Nieve Renderizada una sola vez en el contenedor principal */}
       <SnowBackground />
 
       {/* HEADER */}
