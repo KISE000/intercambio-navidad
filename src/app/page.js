@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner'; // Asegurar que está importado
+import { toast } from 'sonner';
 import Auth from '../components/Auth';
 import WishForm from '../components/WishForm';
 import WishList from '../components/WishList';
@@ -11,6 +11,7 @@ import WishListSkeleton from '../components/WishListSkeleton';
 import GroupSelector from '../components/GroupSelector';
 import Avatar from '../components/Avatar'; 
 import AvatarSelector from '../components/AvatarSelector'; 
+import GroupMembersModal from '../components/GroupMembersModal'; // <--- IMPORTACIÓN NUEVA
 
 export default function Home() {
   const [session, setSession] = useState(null);
@@ -25,13 +26,17 @@ export default function Home() {
   const [snowflakes, setSnowflakes] = useState([]);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  // Modals
   const [isAvatarSelectorOpen, setIsAvatarSelectorOpen] = useState(false);
+  const [isMembersModalOpen, setIsMembersModalOpen] = useState(false); // <--- ESTADO NUEVO
   
   const menuRef = useRef(null);
 
   const getUserAvatarStyle = () => session?.user?.user_metadata?.avatar_style || 'robot';
   const getUserAvatarSeed = () => session?.user?.user_metadata?.avatar_seed || session?.user?.email;
 
+  // --- 1. Efecto de Nieve ---
   useEffect(() => {
     const flakes = Array.from({ length: 50 }).map((_, i) => ({
       id: i,
@@ -64,9 +69,9 @@ export default function Home() {
     </div>
   );
 
+  // --- 2. Lógica Supabase ---
   const fetchWishes = useCallback(async () => {
     if (!selectedGroup) return;
-    
     setLoadingWishes(true);
     
     const { data, error } = await supabase
@@ -80,14 +85,12 @@ export default function Home() {
     } else {
       setWishes(data || []);
     }
-    
     setTimeout(() => setLoadingWishes(false), 500); 
-    
   }, [selectedGroup]);
 
+  // --- 3. Auth State Change ---
   useEffect(() => {
     let mounted = true;
-    
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (mounted) { setSession(session); setLoading(false); }
     });
@@ -110,6 +113,7 @@ export default function Home() {
     if (session && selectedGroup) fetchWishes();
   }, [session, selectedGroup, fetchWishes]);
 
+  // Click outside menu
   useEffect(() => {
     function handleClickOutside(event) {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -135,18 +139,14 @@ export default function Home() {
     await supabase.auth.signOut();
   };
 
-  // --- LÓGICA DE INVITACIÓN (NUEVO) ---
   const handleInvite = () => {
     if (!selectedGroup) return;
     const shareText = `🎄 ¡Únete a mi intercambio "${selectedGroup.name}"!\n\n1. Entra a: ${window.location.origin}\n2. Usa el código: ${selectedGroup.code}`;
-    
     navigator.clipboard.writeText(shareText).then(() => {
       toast.success("📋 Invitación copiada al portapapeles");
       setIsMenuOpen(false);
       setIsMobileMenuOpen(false);
-    }).catch(() => {
-      toast.error("Error al copiar");
-    });
+    }).catch(() => toast.error("Error al copiar"));
   };
 
   const filteredWishes = wishes.filter(w => {
@@ -161,26 +161,21 @@ export default function Home() {
   const totalWishes = wishes.length;
   const progressPercentage = (myWishesCount / 10) * 100;
 
+  // --- Render Conditional ---
   if (loading) return (
-    <div className="min-h-screen bg-[#0B0E14] flex items-center justify-center text-purple-500 relative overflow-hidden">
-      <SnowBackground />
-      <span className="animate-pulse z-10 font-mono">Iniciando sistemas...</span>
-    </div>
+    <div className="min-h-screen bg-[#0B0E14] flex items-center justify-center text-purple-500 relative overflow-hidden"><SnowBackground /><span className="animate-pulse z-10 font-mono">Iniciando sistemas...</span></div>
   );
 
   if (!session) return (
-    <main className="min-h-screen bg-[#0B0E14] flex items-center justify-center relative overflow-hidden">
-      <SnowBackground />
-      <div className="z-10"><Auth /></div>
-    </main>
+    <main className="min-h-screen bg-[#0B0E14] flex items-center justify-center relative overflow-hidden"><SnowBackground /><div className="z-10"><Auth /></div></main>
   );
 
   if (!selectedGroup) return (
-    <main className="min-h-screen bg-[#0B0E14] flex items-center justify-center relative overflow-hidden">
-      <SnowBackground />
-      <div className="z-10 w-full"><GroupSelector session={session} onSelectGroup={setSelectedGroup} onLogout={handleLogout} /></div>
-    </main>
+    <main className="min-h-screen bg-[#0B0E14] flex items-center justify-center relative overflow-hidden"><SnowBackground /><div className="z-10 w-full"><GroupSelector session={session} onSelectGroup={setSelectedGroup} onLogout={handleLogout} /></div></main>
   );
+
+  // Check si soy admin del grupo actual
+  const isAdmin = selectedGroup?.role === 'admin';
 
   return (
     <div className="min-h-screen bg-[#0B0E14] text-slate-200 font-sans pb-20 relative">
@@ -195,37 +190,20 @@ export default function Home() {
             <div className="flex items-center gap-2 text-xs md:text-sm text-slate-400 mt-0.5">
               <span className="hidden sm:inline">Mis Grupos</span>
               <span className="text-slate-600 hidden sm:inline">/</span>
-              <span className="text-purple-400 font-bold uppercase truncate max-w-[120px] sm:max-w-none">
-                {selectedGroup.name}
-              </span>
+              <span className="text-purple-400 font-bold uppercase truncate max-w-[120px] sm:max-w-none">{selectedGroup.name}</span>
             </div>
           </div>
         </div>
 
         {/* Móvil Trigger */}
-        <button 
-          onClick={() => setIsMobileMenuOpen(true)}
-          className="md:hidden relative group outline-none"
-        >
-          <Avatar 
-            seed={getUserAvatarSeed()} 
-            style={getUserAvatarStyle()}
-            size="md" 
-            className="group-active:scale-95 transition-transform" 
-          />
+        <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden relative group outline-none">
+          <Avatar seed={getUserAvatarSeed()} style={getUserAvatarStyle()} size="md" className="group-active:scale-95 transition-transform" />
         </button>
 
         {/* Desktop Menu */}
         <div className="hidden md:block relative" ref={menuRef}>
-           <button 
-             onClick={() => setIsMenuOpen(!isMenuOpen)}
-             className={`flex items-center gap-3 bg-[#0B0E14] border border-white/5 rounded-full pl-1 pr-6 py-1 hover:border-purple-500/50 transition-all ${isMenuOpen ? 'ring-2 ring-purple-500/20 border-purple-500/50' : ''}`}
-           >
-             <Avatar 
-                seed={getUserAvatarSeed()} 
-                style={getUserAvatarStyle()}
-                size="md" 
-             />
+           <button onClick={() => setIsMenuOpen(!isMenuOpen)} className={`flex items-center gap-3 bg-[#0B0E14] border border-white/5 rounded-full pl-1 pr-6 py-1 hover:border-purple-500/50 transition-all ${isMenuOpen ? 'ring-2 ring-purple-500/20 border-purple-500/50' : ''}`}>
+             <Avatar seed={getUserAvatarSeed()} style={getUserAvatarStyle()} size="md" />
              <span className="text-sm font-medium text-slate-300">{session.user.email.split('@')[0]}</span>
              <span className={`text-xs text-slate-500 transition-transform duration-300 ${isMenuOpen ? 'rotate-180' : ''}`}>▼</span>
            </button>
@@ -238,26 +216,29 @@ export default function Home() {
                </div>
                <div className="p-3 space-y-2">
                  
-                 {/* BOTÓN INVITAR (DESKTOP) */}
-                 <button 
-                    onClick={handleInvite} 
-                    className="w-full text-left px-4 py-3 text-base text-slate-300 hover:text-white hover:bg-white/5 rounded-xl flex items-center gap-3 transition-colors group"
-                 >
-                    <span className="text-xl group-hover:scale-110 transition-transform">🔗</span> 
-                    Invitar Amigos
+                 {/* BOTÓN GESTIÓN MIEMBROS (SOLO ADMIN) */}
+                 {isAdmin && (
+                   <button 
+                      onClick={() => { setIsMembersModalOpen(true); setIsMenuOpen(false); }} 
+                      className="w-full text-left px-4 py-3 text-base text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/10 rounded-xl flex items-center gap-3 transition-colors group"
+                   >
+                      <span className="text-xl group-hover:scale-110 transition-transform">👥</span> 
+                      Gestión de Miembros
+                   </button>
+                 )}
+
+                 <button onClick={handleInvite} className="w-full text-left px-4 py-3 text-base text-slate-300 hover:text-white hover:bg-white/5 rounded-xl flex items-center gap-3 transition-colors group">
+                    <span className="text-xl group-hover:scale-110 transition-transform">🔗</span> Invitar Amigos
                  </button>
 
-                 <button 
-                    onClick={() => { setIsAvatarSelectorOpen(true); setIsMenuOpen(false); }} 
-                    className="w-full text-left px-4 py-3 text-base text-slate-300 hover:text-white hover:bg-white/5 rounded-xl flex items-center gap-3 transition-colors group"
-                 >
-                    <span className="text-xl group-hover:scale-110 transition-transform">🎅</span> 
-                    Cambiar Avatar
+                 <button onClick={() => { setIsAvatarSelectorOpen(true); setIsMenuOpen(false); }} className="w-full text-left px-4 py-3 text-base text-slate-300 hover:text-white hover:bg-white/5 rounded-xl flex items-center gap-3 transition-colors group">
+                    <span className="text-xl group-hover:scale-110 transition-transform">🎅</span> Cambiar Avatar
                  </button>
                  
                  <button onClick={() => { setSelectedGroup(null); setIsMenuOpen(false); }} className="w-full text-left px-4 py-3 text-base text-slate-300 hover:text-white hover:bg-white/5 rounded-xl flex items-center gap-3 transition-colors group">
                    <span className="text-xl group-hover:scale-110 transition-transform">🔄</span> Cambiar de Grupo
                  </button>
+                 
                  <button onClick={handleLogout} className="w-full text-left px-4 py-3 text-base text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl flex items-center gap-3 transition-colors group">
                    <span className="text-xl group-hover:scale-110 transition-transform">🚪</span> Cerrar Sesión
                  </button>
@@ -280,12 +261,7 @@ export default function Home() {
             </div>
             <div className="p-6 border-b border-white/5">
               <div className="flex items-center gap-4 mb-4">
-                <Avatar 
-                    seed={getUserAvatarSeed()} 
-                    style={getUserAvatarStyle()}
-                    size="lg" 
-                />
-                
+                <Avatar seed={getUserAvatarSeed()} style={getUserAvatarStyle()} size="lg" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-slate-500 font-bold uppercase tracking-wider mb-1">Mi Cuenta</p>
                   <p className="text-base text-white font-medium truncate">{session.user.email}</p>
@@ -294,34 +270,39 @@ export default function Home() {
               <div className="bg-[#0B0E14]/50 rounded-xl p-3 border border-white/5">
                 <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Grupo Actual</p>
                 <p className="text-sm text-purple-400 font-bold">{selectedGroup.name}</p>
+                {isAdmin && <span className="text-[10px] text-yellow-500 font-bold bg-yellow-500/10 px-2 py-0.5 rounded border border-yellow-500/20 mt-1 inline-block">ADMINISTRADOR</span>}
               </div>
             </div>
             <div className="p-4 space-y-2">
               
-              {/* BOTÓN INVITAR (MOVIL) */}
-              <button 
-                  onClick={handleInvite} 
-                  className="w-full text-left px-4 py-4 text-base text-slate-300 hover:text-white hover:bg-white/5 rounded-xl flex items-center gap-3 transition-colors group"
-              >
-                <span className="text-2xl group-hover:scale-110 transition-transform">🔗</span>
-                <span>Invitar Amigos</span>
+              {/* BOTÓN GESTIÓN MIEMBROS MÓVIL (SOLO ADMIN) */}
+              {isAdmin && (
+                <button 
+                    onClick={() => { setIsMembersModalOpen(true); setIsMobileMenuOpen(false); }} 
+                    className="w-full text-left px-4 py-4 text-base text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/10 rounded-xl flex items-center gap-3 transition-colors group"
+                >
+                  <span className="text-2xl group-hover:scale-110 transition-transform">👥</span>
+                  <span>Gestión de Miembros</span>
+                </button>
+              )}
+
+              <button onClick={handleInvite} className="w-full text-left px-4 py-4 text-base text-slate-300 hover:text-white hover:bg-white/5 rounded-xl flex items-center gap-3 transition-colors group">
+                <span className="text-2xl group-hover:scale-110 transition-transform">🔗</span><span>Invitar Amigos</span>
               </button>
 
-              <button 
-                  onClick={() => { setIsAvatarSelectorOpen(true); setIsMobileMenuOpen(false); }} 
-                  className="w-full text-left px-4 py-4 text-base text-slate-300 hover:text-white hover:bg-white/5 rounded-xl flex items-center gap-3 transition-colors group"
-              >
-                <span className="text-2xl group-hover:scale-110 transition-transform">🎅</span>
-                <span>Personalizar Avatar</span>
+              <button onClick={() => { setIsAvatarSelectorOpen(true); setIsMobileMenuOpen(false); }} className="w-full text-left px-4 py-4 text-base text-slate-300 hover:text-white hover:bg-white/5 rounded-xl flex items-center gap-3 transition-colors group">
+                <span className="text-2xl group-hover:scale-110 transition-transform">🎅</span><span>Personalizar Avatar</span>
               </button>
 
               <button onClick={() => { setSelectedGroup(null); setIsMobileMenuOpen(false); }} className="w-full text-left px-4 py-4 text-base text-slate-300 hover:text-white hover:bg-white/5 rounded-xl flex items-center gap-3 transition-colors group">
                 <span className="text-2xl group-hover:scale-110 transition-transform">🔄</span><span>Cambiar de Grupo</span>
               </button>
+              
               <button onClick={handleLogout} className="w-full text-left px-4 py-4 text-base text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl flex items-center gap-3 transition-colors group">
                 <span className="text-2xl group-hover:scale-110 transition-transform">🚪</span><span>Cerrar Sesión</span>
               </button>
             </div>
+            {/* Footer móvil */}
             <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-white/5 bg-[#0B0E14]/50">
               <p className="text-xs text-slate-600 text-center">iShop Navidad v1.0</p>
             </div>
@@ -329,9 +310,10 @@ export default function Home() {
         </>
       )}
 
-      {/* HERO SECTION Y RESTO DEL CONTENIDO (Sin cambios) */}
+      {/* Hero section y resto del contenido... */}
       <div className="relative z-10 max-w-4xl mx-auto px-4 mt-8 mb-12">
-         {/* ... El resto del layout principal se mantiene igual ... */}
+         {/* ... (Contenido principal omitido por brevedad, no cambia) ... */}
+         {/* Aquí iría el contenido del HERO y los TABS igual que antes */}
          <div className="relative group">
           <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 rounded-3xl opacity-20 group-hover:opacity-30 transition duration-500 blur-xl"></div>
           <div className="relative bg-gradient-to-br from-[#151923] to-[#0B0E14] rounded-3xl p-8 md:p-10 border border-white/10 shadow-2xl overflow-hidden">
@@ -349,6 +331,7 @@ export default function Home() {
                       <p className="text-2xl font-bold"><span className="text-white">{myWishesCount}</span><span className="text-slate-600">/</span><span className="text-slate-500">10</span></p>
                    </div>
                 </div>
+                {/* Stats y Barras */}
                 <div className="mb-6">
                    <div className="flex justify-between items-center mb-2">
                       <span className="text-sm text-slate-400">Deseos agregados</span>
@@ -358,6 +341,7 @@ export default function Home() {
                       <div className="h-full bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 rounded-full transition-all duration-1000 ease-out shadow-lg shadow-purple-500/50" style={{ width: `${Math.min(progressPercentage, 100)}%` }}></div>
                    </div>
                 </div>
+                {/* Cards Stats */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                    <div className="bg-[#0B0E14]/50 backdrop-blur-sm border border-purple-500/20 rounded-xl p-4 hover:border-purple-500/40 transition-colors">
                       <div className="flex items-center gap-3 mb-2"><span className="text-2xl">✏️</span><span className="text-xs text-slate-500 uppercase tracking-wider">Mis Deseos</span></div>
@@ -377,6 +361,7 @@ export default function Home() {
          </div>
       </div>
 
+      {/* Tabs y Listas */}
       <div className="max-w-4xl mx-auto px-4 mt-10 relative z-10">
         <div className="flex justify-center mb-12">
           <div className="bg-[#151923] p-1 rounded-xl border border-white/5 flex w-full max-w-sm relative shadow-xl">
@@ -391,7 +376,6 @@ export default function Home() {
         </div>
 
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-10">
-          
           {loadingWishes ? (
              <WishListSkeleton />
           ) : (
@@ -400,6 +384,7 @@ export default function Home() {
                 <>
                   <WishForm session={session} onWishAdded={fetchWishes} currentWishes={wishes} groupId={selectedGroup.id} />
                   <div className="mt-16">
+                    {/* Header Mis Deseos */}
                     <div className="flex items-center gap-4 mb-8">
                       <span className="text-3xl">📝</span>
                       <h2 className="text-2xl font-bold text-white">Mis Deseos</h2>
@@ -443,6 +428,7 @@ export default function Home() {
         </div>
       </div>
       
+      {/* MODALS */}
       <AvatarSelector 
         isOpen={isAvatarSelectorOpen} 
         onClose={() => setIsAvatarSelectorOpen(false)}
@@ -451,6 +437,13 @@ export default function Home() {
           setSession({ ...session, user: updatedUser });
           fetchWishes();
         }}
+      />
+
+      <GroupMembersModal 
+        isOpen={isMembersModalOpen}
+        onClose={() => setIsMembersModalOpen(false)}
+        groupId={selectedGroup?.id}
+        currentUserSession={session}
       />
     </div>
   );
