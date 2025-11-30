@@ -1,4 +1,4 @@
-import { useState, Fragment, useEffect } from 'react';
+import { useState, Fragment, useEffect, cloneElement } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabaseClient';
 import { toast } from 'sonner';
@@ -22,7 +22,170 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-// --- COMPONENTE INTERNO SORTABLE WRAPPER ---
+// --- CONFIG VISUAL (Helpers) ---
+const getPriorityConfig = (p) => {
+  switch (p) {
+    case 1: return { 
+        icon: '🔥', 
+        label: 'Alta', 
+        container: 'border-red-500/50 bg-[#0B0E14]/80 shadow-[0_0_15px_-5px_rgba(239,68,68,0.3)]', 
+        badge: 'bg-red-500/20 text-red-300 border-red-500/30',
+        gradient: 'bg-gradient-to-br from-red-500/5 to-transparent'
+    };
+    case 2: return { 
+        icon: '⭐', 
+        label: 'Media', 
+        container: 'border-yellow-500/40 bg-[#0B0E14]/80 shadow-[0_0_15px_-5px_rgba(234,179,8,0.3)]', 
+        badge: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
+        gradient: 'bg-gradient-to-br from-yellow-500/5 to-transparent'
+    };
+    default: return { 
+        icon: '🧊', 
+        label: 'Baja', 
+        container: 'border-slate-700 bg-[#0B0E14]/80 hover:border-purple-500/40', 
+        badge: 'bg-slate-700/50 text-slate-300 border-slate-600',
+        gradient: 'bg-gradient-to-br from-slate-800/20 to-transparent'
+    };
+  }
+};
+
+const isNew = (createdAt) => {
+  const diffHours = (new Date() - new Date(createdAt)) / (1000 * 60 * 60);
+  return diffHours < 48;
+};
+
+// --- SUB-COMPONENTE: TARJETA INDIVIDUAL ---
+// Ahora acepta 'dragListeners' para aplicarlos SOLO al botón de arrastre (Handle)
+function WishCardItem({ wish, isMine, onEdit, onDelete, onImageClick, dragListeners }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  const priority = getPriorityConfig(wish.priority);
+  const showNewBadge = isNew(wish.created_at);
+  
+  // Padding dinámico: Si no hay imagen, bajamos el contenido para no chocar con las etiquetas
+  const contentPadding = wish.image_url ? 'pt-5' : 'pt-14';
+
+  return (
+    <div className={`relative backdrop-blur-md border rounded-3xl overflow-hidden group hover:translate-y-[-2px] transition-all duration-300 flex flex-col h-full ${priority.container}`}>
+      <div className={`absolute inset-0 ${priority.gradient} opacity-50 pointer-events-none`}></div>
+
+      {/* --- AGARRADERA (HANDLE / GRIP BAR) --- 
+          Esta es la única zona que activa el Drag & Drop.
+          Permite que el resto de la tarjeta sea "scrollable" en móvil.
+      */}
+      {isMine && (
+        <button 
+          {...dragListeners} // <--- AQUÍ SE APLICAN LOS LISTENERS DE DND
+          className="absolute top-0 inset-x-0 h-10 flex items-start justify-center pt-3 z-30 cursor-grab active:cursor-grabbing touch-none outline-none group/handle"
+          aria-label="Arrastrar para ordenar"
+        >
+          {/* Visual de la barra */}
+          <div className="w-12 h-1.5 rounded-full bg-white/20 backdrop-blur-sm group-hover/handle:bg-white/50 group-active/handle:bg-purple-400 group-active/handle:w-16 transition-all shadow-sm"></div>
+        </button>
+      )}
+
+      {/* Badges (Absolute) */}
+      <div className="absolute top-4 left-4 z-20 flex flex-col gap-2 pointer-events-none">
+        {showNewBadge && (
+            <span className="bg-purple-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg shadow-lg shadow-purple-500/30 animate-pulse tracking-wide self-start">
+                NUEVO
+            </span>
+        )}
+      </div>
+
+      <div className="absolute top-4 right-4 z-20 pointer-events-none">
+        <div className={`${priority.badge} text-[10px] font-bold px-2.5 py-1 rounded-lg border backdrop-blur-md flex items-center gap-1.5 uppercase tracking-wider shadow-sm`}>
+          <span className="text-xs">{priority.icon}</span>
+          <span>{priority.label}</span>
+        </div>
+      </div>
+
+      {/* Imagen */}
+      {wish.image_url && (
+        <div 
+          className="relative h-56 overflow-hidden cursor-pointer group/img shrink-0 mt-4 mx-4 rounded-2xl border border-white/5 shadow-inner bg-black/20"
+          onClick={() => onImageClick(wish.image_url)}
+          onPointerDown={(e) => e.stopPropagation()} 
+        >
+          <img 
+            src={wish.image_url} 
+            alt={wish.title}
+            className="w-full h-full object-cover transition-transform duration-700 group-hover/img:scale-110"
+          />
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+             <div className="bg-white/10 backdrop-blur-md rounded-full p-3 text-white border border-white/20 shadow-xl">
+               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" /></svg>
+             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Contenido */}
+      <div className={`p-6 flex flex-col flex-1 relative z-10 ${contentPadding}`}>
+        <h3 className="font-bold text-lg text-white leading-tight mb-2 break-words drop-shadow-sm">
+            {wish.title}
+        </h3>
+        
+        <div className="flex-1 mb-4">
+            {wish.details ? (
+              <p 
+                onClick={(e) => { 
+                   e.stopPropagation(); 
+                   setIsExpanded(!isExpanded); 
+                }}
+                className={`text-slate-400 text-sm leading-relaxed whitespace-pre-wrap break-words cursor-pointer transition-all select-none ${isExpanded ? '' : 'line-clamp-4 hover:text-slate-300'}`}
+                title="Toca para expandir/colapsar"
+              >
+                {wish.details}
+              </p>
+            ) : (
+                <p className="text-slate-600 text-xs italic">Sin detalles adicionales.</p>
+            )}
+        </div>
+
+        <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between gap-3">
+          <div className="flex-1">
+            {wish.link && (
+              <a 
+                href={wish.link} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-purple-400 transition-colors group/link"
+                onPointerDown={(e) => e.stopPropagation()} 
+              >
+                <span className="group-hover/link:-translate-y-0.5 transition-transform">🔗</span> 
+                Ver Enlace
+              </a>
+            )}
+          </div>
+          
+          {isMine && (
+            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 focus-within:opacity-100">
+              <button 
+                onClick={(e) => { e.stopPropagation(); onEdit(wish); }}
+                onPointerDown={(e) => e.stopPropagation()}
+                className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all flex items-center justify-center backdrop-blur-md"
+                title="Editar"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+              </button>
+              <button 
+                onClick={(e) => { e.stopPropagation(); onDelete(wish.id); }}
+                onPointerDown={(e) => e.stopPropagation()}
+                className="w-8 h-8 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center backdrop-blur-md"
+                title="Borrar"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- COMPONENTE WRAPPER DND ---
 function SortableWishCard({ wish, children, disabled }) {
   const {
     attributes,
@@ -37,33 +200,35 @@ function SortableWishCard({ wish, children, disabled }) {
     transform: CSS.Transform.toString(transform),
     transition,
     zIndex: isDragging ? 50 : 'auto',
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0.8 : 1,
+    scale: isDragging ? 1.05 : 1,
+    // Eliminamos 'touch-none' de aquí para permitir el scroll en el cuerpo de la tarjeta
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="h-full touch-none">
-      {children}
+    // Pasamos 'listeners' al hijo (WishCardItem) usando cloneElement para que solo el handle active el drag
+    <div ref={setNodeRef} style={style} {...attributes} className="h-full relative">
+      {cloneElement(children, { dragListeners: listeners })}
     </div>
   );
 }
 
+// --- MAIN COMPONENT ---
 export default function WishList({ wishes, currentUser, onDelete }) {
-  // Estado local para DND (UI optimista)
+  // Estado local para DND
   const [internalWishes, setInternalWishes] = useState(wishes);
   const [selectedImage, setSelectedImage] = useState(null);
   
-  // --- ESTADOS PARA EDICIÓN ---
+  // Estados Edición
   const [editingWish, setEditingWish] = useState(null);
   const [formData, setFormData] = useState({ title: '', details: '', link: '', priority: '2' });
   const [loadingEdit, setLoadingEdit] = useState(false);
 
-  // --- ESTADO PARA ACORDEÓN ---
+  // Estados Acordeón
   const [expandedGroups, setExpandedGroups] = useState({});
-
-  // --- ESTADO PARA PORTAL ---
   const [mounted, setMounted] = useState(false);
 
-  // Sincronizar props con estado interno si cambian desde fuera (ej: nuevo deseo añadido)
+  // Sincronización
   useEffect(() => {
     setInternalWishes(wishes);
   }, [wishes]);
@@ -83,11 +248,11 @@ export default function WishList({ wishes, currentUser, onDelete }) {
     }
   }, [editingWish]);
 
-  // Configuración de sensores DND (Pointer con restricción para permitir click vs drag)
+  // Sensores DND
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8, // Mover 8px para activar drag
+        distance: 8, // Requiere mover 8px para iniciar el arrastre (evita clicks accidentales)
       },
     }),
     useSensor(KeyboardSensor, {
@@ -95,7 +260,7 @@ export default function WishList({ wishes, currentUser, onDelete }) {
     })
   );
 
-  // --- LÓGICA DE AGRUPACIÓN ---
+  // Agrupación
   const groupWishesByUser = (list) => {
     return list.reduce((acc, wish) => {
       const ownerId = wish.user_id;
@@ -120,61 +285,53 @@ export default function WishList({ wishes, currentUser, onDelete }) {
 
   const groupedWishes = groupWishesByUser(internalWishes);
 
-  // Inicializar acordeón abierto por defecto para el usuario actual
+  // Inicializar Acordeón
   useEffect(() => {
-    if (currentUser?.id && !expandedGroups[currentUser.id]) {
-        setExpandedGroups(prev => ({ ...prev, [currentUser.id]: true }));
+    if (currentUser?.id) {
+        setExpandedGroups(prev => {
+            if (Object.prototype.hasOwnProperty.call(prev, currentUser.id)) {
+                return prev;
+            }
+            return { ...prev, [currentUser.id]: true };
+        });
     }
-  }, [currentUser, expandedGroups]);
+  }, [currentUser]);
 
   const toggleGroup = (userId) => {
     setExpandedGroups(prev => ({ ...prev, [userId]: !prev[userId] }));
   };
 
-  // --- HANDLERS DND ---
+  // Handlers
   const handleDragEnd = async (event) => {
     const { active, over } = event;
-    
     if (!over || active.id === over.id) return;
 
-    // Obtener los items involucrados
     const activeWish = internalWishes.find(w => w.id === active.id);
-    
-    // Seguridad: Solo permitir reordenar mis propios deseos
     if (activeWish.user_id !== currentUser.id) return;
 
     const oldIndex = internalWishes.findIndex(w => w.id === active.id);
     const newIndex = internalWishes.findIndex(w => w.id === over.id);
 
-    // 1. UI OPTIMISTA: Reordenar array localmente
     const newWishes = arrayMove(internalWishes, oldIndex, newIndex);
     setInternalWishes(newWishes);
 
-    // 2. PERSISTENCIA: Actualizar Supabase
-    // Filtramos solo mis deseos para recalcular sus posiciones relativas
     const myWishes = newWishes.filter(w => w.user_id === currentUser.id);
     
     try {
-        // Actualizamos todos los deseos afectados
         const updates = myWishes.map((w, index) => ({
             id: w.id,
             position: index
         }));
-
-        // Ejecutar actualizaciones en paralelo
         await Promise.all(updates.map(u => 
             supabase.from('wishes').update({ position: u.position }).eq('id', u.id)
         ));
-        
         toast.success('Orden actualizado');
     } catch (err) {
         console.error(err);
         toast.error('Error guardando el orden');
-        // Revertir en caso de error (opcional, por simplicidad dejamos el estado actual)
     }
   };
 
-  // --- HANDLERS ACCIONES ---
   const handleDelete = async (wishId) => {
     if (!window.confirm("¿Estás seguro de borrar este deseo?")) return;
     const { error } = await supabase.from('wishes').delete().eq('id', wishId);
@@ -209,85 +366,39 @@ export default function WishList({ wishes, currentUser, onDelete }) {
     }
   };
 
-  // --- CONFIG VISUAL ---
-  const getPriorityConfig = (p) => {
-    switch (p) {
-      case 1: return { icon: '🔥', label: 'Alta', gradient: 'from-red-500/10 to-orange-500/10', border: 'border-red-500/20', badge: 'bg-red-500/20 text-red-300 border-red-500/30' };
-      case 2: return { icon: '⭐', label: 'Media', gradient: 'from-yellow-500/10 to-green-500/10', border: 'border-yellow-500/20', badge: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' };
-      default: return { icon: '🧊', label: 'Baja', gradient: 'from-blue-500/10 to-purple-500/10', border: 'border-blue-500/20', badge: 'bg-blue-500/20 text-blue-300 border-blue-500/30' };
-    }
-  };
-
-  // --- LÓGICA DE TIEMPO "NUEVO" ---
-  const isNew = (createdAt) => {
-    const diffHours = (new Date() - new Date(createdAt)) / (1000 * 60 * 60);
-    return diffHours < 48; // <--- AUMENTADO A 48 HORAS PARA MEJOR UX
-  };
-
   return (
     <>
-      {/* --- MODAL EDICIÓN --- */}
+      {/* MODAL EDICIÓN */}
       {mounted && editingWish && createPortal(
         <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setEditingWish(null)}>
-          <div className="bg-[#0f111a] border border-white/10 w-full max-w-md rounded-3xl p-8 shadow-2xl relative" onClick={e => e.stopPropagation()}>
+          <div className="bg-[#151923] border border-white/10 w-full max-w-lg rounded-3xl p-8 shadow-2xl relative" onClick={e => e.stopPropagation()}>
             <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">✏️ Editar Deseo</h3>
-            
             <form onSubmit={handleUpdate} className="space-y-5">
               <div>
-                <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest ml-1">Título</label>
-                <input 
-                  className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white focus:border-purple-500 outline-none transition-colors"
-                  value={formData.title}
-                  onChange={(e) => setFormData({...formData, title: e.target.value})}
-                />
+                <label className="input-label">Título</label>
+                <input className="cyber-input" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} />
               </div>
               <div>
-                <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest ml-1">Detalles</label>
-                <textarea 
-                  className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white focus:border-purple-500 outline-none resize-none h-24 transition-colors"
-                  value={formData.details}
-                  onChange={(e) => setFormData({...formData, details: e.target.value})}
-                />
+                <label className="input-label">Detalles</label>
+                <textarea className="cyber-input h-24 resize-none" value={formData.details} onChange={(e) => setFormData({...formData, details: e.target.value})} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                  <div>
-                    <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest ml-1">Prioridad</label>
-                    <select 
-                      className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white outline-none cursor-pointer"
-                      value={formData.priority}
-                      onChange={(e) => setFormData({...formData, priority: e.target.value})}
-                    >
+                    <label className="input-label">Prioridad</label>
+                    <select className="cyber-input cursor-pointer" value={formData.priority} onChange={(e) => setFormData({...formData, priority: e.target.value})}>
                       <option value="1">🔥 Alta</option>
                       <option value="2">⭐ Media</option>
                       <option value="3">🧊 Baja</option>
                     </select>
                  </div>
                  <div>
-                    <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest ml-1">Link</label>
-                    <input 
-                      className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white outline-none"
-                      placeholder="https://..."
-                      value={formData.link}
-                      onChange={(e) => setFormData({...formData, link: e.target.value})}
-                    />
+                    <label className="input-label">Link</label>
+                    <input className="cyber-input" placeholder="https://..." value={formData.link} onChange={(e) => setFormData({...formData, link: e.target.value})} />
                  </div>
               </div>
-
-              <div className="flex gap-3 mt-6 pt-4 border-t border-white/10">
-                <button 
-                  type="button"
-                  onClick={() => setEditingWish(null)}
-                  className="flex-1 py-3 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors font-medium text-xs font-bold uppercase tracking-wide"
-                >
-                  Cancelar
-                </button>
-                <button 
-                  type="submit"
-                  disabled={loadingEdit}
-                  className="flex-1 py-3 rounded-xl bg-purple-600 text-white font-bold hover:bg-purple-500 transition-colors disabled:opacity-50 text-xs uppercase tracking-wide"
-                >
-                  {loadingEdit ? 'Guardando...' : 'Guardar Cambios'}
-                </button>
+              <div className="flex gap-3 mt-8 pt-4 border-t border-white/5">
+                <button type="button" onClick={() => setEditingWish(null)} className="flex-1 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-slate-300 hover:bg-slate-800 transition-colors font-bold text-xs uppercase tracking-wide">Cancelar</button>
+                <button type="submit" disabled={loadingEdit} className="flex-1 py-3 rounded-xl bg-purple-600 text-white font-bold hover:bg-purple-500 transition-colors disabled:opacity-50 text-xs uppercase tracking-wide shadow-lg shadow-purple-500/20">{loadingEdit ? 'Guardando...' : 'Guardar Cambios'}</button>
               </div>
             </form>
           </div>
@@ -295,39 +406,19 @@ export default function WishList({ wishes, currentUser, onDelete }) {
         document.body
       )}
 
-      {/* --- LIGHTBOX MODAL --- */}
+      {/* LIGHTBOX MODAL */}
       {mounted && selectedImage && createPortal(
-        <div 
-          className="fixed inset-0 bg-black/95 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200 backdrop-blur-md"
-          onClick={() => setSelectedImage(null)}
-        >
-          <button 
-            className="fixed top-6 right-6 z-[10000] bg-slate-900 text-white w-12 h-12 rounded-full flex items-center justify-center border border-white/20 hover:bg-red-600 transition-colors shadow-2xl active:scale-95"
-            onClick={(e) => {
-              e.stopPropagation();
-              setSelectedImage(null);
-            }}
-          >
-            <span className="text-xl font-bold">✕</span>
-          </button>
-
-          <div className="relative w-full h-full flex items-center justify-center pointer-events-none">
-            <img 
-              src={selectedImage} 
-              alt="Zoom" 
-              className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl pointer-events-auto"
-            />
+        <div className="fixed inset-0 bg-black/95 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200 backdrop-blur-xl" onClick={() => setSelectedImage(null)}>
+          <button className="fixed top-6 right-6 z-[10000] bg-white/10 text-white w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/20 transition-colors backdrop-blur-md" onClick={(e) => { e.stopPropagation(); setSelectedImage(null); }}>✕</button>
+          <div className="relative max-w-5xl max-h-[90vh] p-2">
+            <img src={selectedImage} alt="Zoom" className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.5)]" />
           </div>
         </div>,
         document.body
       )}
 
-      {/* --- CONTEXTO DND --- */}
-      <DndContext 
-        sensors={sensors} 
-        collisionDetection={closestCenter} 
-        onDragEnd={handleDragEnd}
-      >
+      {/* LISTA DE DESEOS */}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {Object.values(groupedWishes).map((userGroup) => {
             const isOpen = expandedGroups[userGroup.id]; 
@@ -335,147 +426,38 @@ export default function WishList({ wishes, currentUser, onDelete }) {
 
             return (
               <Fragment key={userGroup.id}>
-                
-                {/* HEADER DEL USUARIO */}
-                <div className="col-span-full mt-4 first:mt-0">
-                    <button 
-                      onClick={() => toggleGroup(userGroup.id)}
-                      className={`w-full flex items-center justify-between p-3 pr-5 rounded-full border transition-all duration-300 group ${
-                          isOpen 
-                          ? 'bg-purple-900/10 border-purple-500/30 shadow-[0_0_20px_rgba(168,85,247,0.1)]' 
-                          : 'bg-[#151923] border-white/5 hover:border-purple-500/30 hover:bg-[#1A1F2E]'
-                      }`}
-                    >
+                {/* HEADER USUARIO */}
+                <div className="col-span-full mt-6 first:mt-0">
+                    <button onClick={() => toggleGroup(userGroup.id)} className={`w-full flex items-center justify-between p-3 pl-4 pr-5 rounded-2xl border transition-all duration-300 group ${isOpen ? 'bg-purple-500/10 border-purple-500/30' : 'bg-[#151923]/60 border-white/5 hover:bg-[#1A1F2E] hover:border-white/10'}`}>
                       <div className="flex items-center gap-4">
-                          <Avatar 
-                            seed={userGroup.avatarSeed} 
-                            style={userGroup.avatarStyle} 
-                            size="lg" 
-                          />
-                          
+                          <Avatar seed={userGroup.avatarSeed} style={userGroup.avatarStyle} size="lg" className="ring-2 ring-offset-2 ring-offset-[#0B0E14] ring-transparent group-hover:ring-purple-500/50 transition-all" />
                           <div className="text-left">
-                              <h3 className={`text-lg font-bold transition-colors tracking-tight ${isOpen ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>
-                                  {userGroup.name}
-                              </h3>
-                              <p className="text-[10px] text-slate-500 font-mono uppercase tracking-widest flex gap-2">
+                              <h3 className={`text-lg font-bold transition-colors tracking-tight ${isOpen ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>{userGroup.name}</h3>
+                              <p className="text-[10px] text-slate-500 font-mono uppercase tracking-widest flex items-center gap-2 mt-0.5">
                                   <span>{userGroup.wishes.length} deseo{userGroup.wishes.length !== 1 ? 's' : ''}</span>
-                                  {isMyGroup && <span className="text-purple-400 font-bold">• ARRASTRAR PARA ORDENAR</span>}
+                                  {isMyGroup && <span className="text-purple-400 font-bold bg-purple-500/10 px-2 rounded-full hidden sm:inline-block">TU LISTA</span>}
                               </p>
                           </div>
                       </div>
-
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center border border-white/10 transition-all duration-300 ${isOpen ? 'bg-purple-500 text-white rotate-180' : 'bg-slate-800 text-slate-400 group-hover:bg-slate-700'}`}>
-                          ▼
-                      </div>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center border border-white/10 transition-all duration-300 ${isOpen ? 'bg-white text-black rotate-180' : 'bg-black/20 text-slate-400 group-hover:bg-white/10 group-hover:text-white'}`}>▼</div>
                     </button>
+                    {isOpen && userGroup.wishes.length === 0 && <div className="text-center py-10 text-slate-500 text-sm border-2 border-dashed border-white/5 rounded-2xl mt-4 bg-white/[0.02]">No hay deseos visibles aquí.</div>}
                 </div>
 
-                {/* TARJETAS DE DESEO (SORTABLE CONTEXT SOLO SI ES MI GRUPO) */}
+                {/* TARJETAS */}
                 {isOpen && (
-                  <SortableContext 
-                    items={userGroup.wishes.map(w => w.id)} 
-                    strategy={rectSortingStrategy}
-                    disabled={!isMyGroup} // Deshabilitar DND en listas ajenas
-                  >
-                    {userGroup.wishes.map((wish, wishIndex) => {
+                  <SortableContext items={userGroup.wishes.map(w => w.id)} strategy={rectSortingStrategy} disabled={!isMyGroup}>
+                    {userGroup.wishes.map((wish) => {
                       const isMine = currentUser?.id === wish.user_id;
-                      const priority = getPriorityConfig(wish.priority);
-                      const showNewBadge = isNew(wish.created_at);
-                      
                       return (
                         <SortableWishCard key={wish.id} wish={wish} disabled={!isMyGroup}>
-                            <div 
-                              className={`relative bg-gradient-to-br ${priority.gradient} backdrop-blur-sm border ${priority.border} rounded-2xl overflow-hidden group hover:scale-[1.02] transition-all duration-300 shadow-xl flex flex-col h-full`}
-                            >
-                              
-                              {/* Drag Handle Indicador (Solo para el dueño) */}
-                              {isMine && (
-                                <div className="absolute top-0 inset-x-0 h-4 bg-gradient-to-b from-white/5 to-transparent z-20 cursor-grab active:cursor-grabbing hover:bg-white/10 flex justify-center items-start pt-1">
-                                  <div className="w-8 h-1 rounded-full bg-white/20"></div>
-                                </div>
-                              )}
-
-                              {showNewBadge && (
-                                <div className="absolute top-3 left-3 z-10">
-                                  <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-lg animate-pulse tracking-wide">
-                                    NUEVO
-                                  </span>
-                                </div>
-                              )}
-
-                              <div className="absolute top-3 right-3 z-10">
-                                <div className={`${priority.badge} text-[10px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 uppercase tracking-wider`}>
-                                  <span>{priority.icon}</span>
-                                  <span>{priority.label}</span>
-                                </div>
-                              </div>
-
-                              {wish.image_url && (
-                                <div 
-                                  className="relative h-48 overflow-hidden cursor-pointer group/img shrink-0 mt-4 mx-4 rounded-xl border border-white/5"
-                                  onClick={() => setSelectedImage(wish.image_url)}
-                                  // Evitar que el drag se active al intentar hacer click en la imagen (opcional, handled by sensors)
-                                  onPointerDown={(e) => e.stopPropagation()} 
-                                >
-                                  <img 
-                                    src={wish.image_url} 
-                                    alt={wish.title}
-                                    className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-110"
-                                  />
-                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                                    <div className="bg-white/20 backdrop-blur-sm rounded-full p-3 text-white text-2xl border border-white/20">
-                                      🔍
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-
-                              <div className="bg-[#151923]/0 p-6 flex flex-col flex-1">
-                                <h3 className="font-bold text-lg text-white leading-tight mb-3 break-words">
-                                    {wish.title}
-                                </h3>
-                                {wish.details && (
-                                  <p className="text-slate-400 text-sm leading-relaxed mb-4 flex-1 whitespace-pre-wrap break-words">
-                                    {wish.details}
-                                  </p>
-                                )}
-                                <div className="mt-auto pt-4 border-t border-white/10 flex items-center justify-between gap-3 relative z-30">
-                                  <div className="flex-1">
-                                    {wish.link && (
-                                      <a 
-                                        href={wish.link} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer" 
-                                        className="inline-flex items-center gap-1.5 text-[10px] text-purple-400 hover:text-white font-bold uppercase tracking-wider transition-colors hover:underline"
-                                        onPointerDown={(e) => e.stopPropagation()} 
-                                      >
-                                        🔗 Ver Enlace
-                                      </a>
-                                    )}
-                                  </div>
-                                  {isMine && (
-                                    <div className="flex gap-2">
-                                      <button 
-                                        onClick={() => setEditingWish(wish)}
-                                        onPointerDown={(e) => e.stopPropagation()}
-                                        className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all flex items-center justify-center"
-                                        title="Editar"
-                                      >
-                                        ✏️
-                                      </button>
-                                      <button 
-                                        onClick={() => handleDelete(wish.id)}
-                                        onPointerDown={(e) => e.stopPropagation()}
-                                        className="w-8 h-8 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center"
-                                        title="Borrar"
-                                      >
-                                        🗑️
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
+                            <WishCardItem 
+                              wish={wish}
+                              isMine={isMine}
+                              onEdit={setEditingWish}
+                              onDelete={handleDelete}
+                              onImageClick={setSelectedImage}
+                            />
                         </SortableWishCard>
                       );
                     })}

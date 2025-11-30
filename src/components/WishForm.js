@@ -95,25 +95,31 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
   }
 
   return (
-    <div className="relative group">
-      <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 rounded-2xl opacity-20 group-hover:opacity-40 transition duration-500 blur"></div>
+    <div className="relative group max-w-2xl mx-auto">
+      {/* Glow Effect Background */}
+      <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 rounded-3xl opacity-20 group-hover:opacity-30 transition duration-500 blur-xl"></div>
       
-      <div className="relative bg-[#151923] rounded-2xl p-6 md:p-8 border border-white/5 shadow-2xl">
+      <div className="relative bg-[#151923]/90 backdrop-blur-xl rounded-3xl p-6 md:p-8 border border-white/10 shadow-2xl">
         
-        <div className="flex items-center gap-3 mb-6">
-          <div className="bg-gradient-to-br from-purple-500 to-pink-500 w-10 h-10 rounded-lg flex items-center justify-center text-white text-xl shadow-lg shadow-purple-500/20">✨</div>
-          <h2 className="text-xl font-bold text-white">Nuevo Deseo</h2>
+        <div className="flex items-center gap-4 mb-8">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-2xl shadow-[0_0_15px_rgba(168,85,247,0.4)]">
+            ✨
+          </div>
+          <div>
+             <h2 className="text-xl font-bold text-white tracking-tight">Nuevo Deseo</h2>
+             <p className="text-xs text-slate-400">¿Qué te gustaría recibir este año?</p>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-6">
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">¿Qué deseas?</label>
+              <label className="input-label">¿Qué deseas?</label>
               <input
                 type="text"
                 placeholder="Ej: Audífonos Sony..."
-                className="w-full bg-[#0B0E14] border border-slate-700/50 rounded-xl px-4 py-3 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"
+                className="cyber-input"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 maxLength={50}
@@ -121,68 +127,72 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Prioridad</label>
+              <label className="input-label">Prioridad</label>
               <div className="relative">
                 <select
-                  className="w-full bg-[#0B0E14] border border-slate-700/50 rounded-xl px-4 py-3 text-slate-200 appearance-none cursor-pointer focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"
+                  className="cyber-input appearance-none cursor-pointer"
                   value={priority}
                   onChange={(e) => setPriority(e.target.value)}
                 >
-                  <option value="1">🔥 Alta</option>
-                  <option value="2">🙂 Media</option>
-                  <option value="3">🧊 Baja</option>
+                  <option value="1">🔥 Alta (¡Lo necesito!)</option>
+                  <option value="2">⭐ Media (Me haría feliz)</option>
+                  <option value="3">🧊 Baja (Estaría bien)</option>
                 </select>
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">▼</div>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 text-xs">▼</div>
               </div>
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Detalles</label>
+            <label className="input-label">Detalles / Talla / Color</label>
             <textarea
               placeholder="Talla M, color negro mate, modelo 2024..."
-              className="w-full bg-[#0B0E14] border border-slate-700/50 rounded-xl px-4 py-3 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all resize-none h-24"
+              className="cyber-input resize-none h-28"
               value={details}
               onChange={(e) => setDetails(e.target.value)}
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Link (Opcional)</label>
+            <label className="input-label">Link de Referencia (Opcional)</label>
             <input
               type="url"
-              placeholder="https://..."
-              className="w-full bg-[#0B0E14] border border-slate-700/50 rounded-xl px-4 py-3 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"
+              placeholder="https://amazon.com/..."
+              className="cyber-input text-blue-400 underline-offset-2"
               value={link}
               onChange={(e) => setLink(e.target.value)}
             />
           </div>
 
-          {/* Área de Imagen con Preview */}
+          {/* Área de Imagen con Preview Mejorado */}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Imagen de Referencia</label>
+            <label className="input-label">Imagen (Opcional)</label>
             <label 
-              className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition-all relative overflow-hidden ${
+              className={`flex flex-col items-center justify-center w-full h-40 border border-dashed rounded-2xl cursor-pointer transition-all duration-300 relative overflow-hidden group/dropzone ${
                 imagePreview
-                  ? 'border-purple-500 bg-[#0B0E14]' 
-                  : 'border-slate-700 hover:border-slate-500 bg-[#0B0E14] hover:bg-[#151923]'
+                  ? 'border-purple-500/50 bg-[#0B0E14]' 
+                  : 'border-white/10 hover:border-purple-500/50 bg-[#0B0E14]/50 hover:bg-[#1A1F2E]'
               }`}
             >
               {imagePreview ? (
                 <div className="relative w-full h-full group/preview">
-                  <img src={imagePreview} alt="Preview" className="w-full h-full object-contain p-2" />
+                  <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] z-0"></div>
+                  <img src={imagePreview} alt="Preview" className="relative z-10 w-full h-full object-contain p-4" />
                   <button 
                     onClick={clearImage}
-                    className="absolute top-2 right-2 bg-slate-900/80 text-slate-400 hover:text-red-400 p-1.5 rounded-full opacity-0 group-hover/preview:opacity-100 transition-opacity"
+                    className="absolute top-3 right-3 z-20 bg-black/50 text-white hover:bg-red-500/80 hover:text-white p-2 rounded-full opacity-0 group-hover/preview:opacity-100 transition-all backdrop-blur-md border border-white/10"
                     title="Eliminar imagen"
                   >
-                    ✕
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                   </button>
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center pt-5 pb-6 text-slate-500">
-                   <p className="text-3xl mb-2 opacity-50">📷</p>
-                   <p className="text-xs">Click para subir foto</p>
+                <div className="flex flex-col items-center justify-center pt-5 pb-6 text-slate-500 group-hover/dropzone:text-purple-400 transition-colors">
+                   <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-3 group-hover/dropzone:bg-purple-500/10 group-hover/dropzone:scale-110 transition-all duration-300">
+                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                   </div>
+                   <p className="text-xs font-bold uppercase tracking-wider">Click para subir foto</p>
+                   <p className="text-[10px] opacity-60 mt-1">Max 2MB</p>
                 </div>
               )}
               <input 
@@ -198,9 +208,14 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
           <button 
             type="submit" 
             disabled={loading || isLimitReached}
-            className="w-full bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] hover:from-[#5558dd] hover:to-[#7c4dff] text-white font-bold py-3.5 rounded-xl shadow-lg shadow-indigo-500/25 transition-all transform active:scale-[0.98] disabled:opacity-50 mt-2"
+            className="btn-primary mt-4"
           >
-            {loading ? 'Subiendo...' : 'Agregar a mi lista'}
+            {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    Subiendo...
+                </span>
+            ) : 'Agregar a mi lista'}
           </button>
         </form>
       </div>
