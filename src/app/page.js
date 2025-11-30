@@ -11,7 +11,7 @@ import WishListSkeleton from '../components/WishListSkeleton';
 import GroupSelector from '../components/GroupSelector';
 import Avatar from '../components/Avatar'; 
 import AvatarSelector from '../components/AvatarSelector'; 
-import GroupMembersModal from '../components/GroupMembersModal'; // <--- IMPORTACIÓN NUEVA
+import GroupMembersModal from '../components/GroupMembersModal';
 
 export default function Home() {
   const [session, setSession] = useState(null);
@@ -29,7 +29,7 @@ export default function Home() {
   
   // Modals
   const [isAvatarSelectorOpen, setIsAvatarSelectorOpen] = useState(false);
-  const [isMembersModalOpen, setIsMembersModalOpen] = useState(false); // <--- ESTADO NUEVO
+  const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
   
   const menuRef = useRef(null);
 
@@ -78,7 +78,8 @@ export default function Home() {
       .from('wishes')
       .select('*, profiles(username, avatar_style, avatar_seed)') 
       .eq('group_id', selectedGroup.id)
-      .order('created_at', { ascending: false });
+      .order('position', { ascending: true }) // <--- NUEVO ORDENAMIENTO PRIMARIO
+      .order('created_at', { ascending: false }); // Fallback
 
     if (error) {
       console.error('Error fetching wishes:', error);
@@ -216,7 +217,6 @@ export default function Home() {
                </div>
                <div className="p-3 space-y-2">
                  
-                 {/* BOTÓN GESTIÓN MIEMBROS (SOLO ADMIN) */}
                  {isAdmin && (
                    <button 
                       onClick={() => { setIsMembersModalOpen(true); setIsMenuOpen(false); }} 
@@ -275,7 +275,6 @@ export default function Home() {
             </div>
             <div className="p-4 space-y-2">
               
-              {/* BOTÓN GESTIÓN MIEMBROS MÓVIL (SOLO ADMIN) */}
               {isAdmin && (
                 <button 
                     onClick={() => { setIsMembersModalOpen(true); setIsMobileMenuOpen(false); }} 
@@ -302,7 +301,6 @@ export default function Home() {
                 <span className="text-2xl group-hover:scale-110 transition-transform">🚪</span><span>Cerrar Sesión</span>
               </button>
             </div>
-            {/* Footer móvil */}
             <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-white/5 bg-[#0B0E14]/50">
               <p className="text-xs text-slate-600 text-center">iShop Navidad v1.0</p>
             </div>
@@ -310,10 +308,8 @@ export default function Home() {
         </>
       )}
 
-      {/* Hero section y resto del contenido... */}
+      {/* Hero y Stats */}
       <div className="relative z-10 max-w-4xl mx-auto px-4 mt-8 mb-12">
-         {/* ... (Contenido principal omitido por brevedad, no cambia) ... */}
-         {/* Aquí iría el contenido del HERO y los TABS igual que antes */}
          <div className="relative group">
           <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 rounded-3xl opacity-20 group-hover:opacity-30 transition duration-500 blur-xl"></div>
           <div className="relative bg-gradient-to-br from-[#151923] to-[#0B0E14] rounded-3xl p-8 md:p-10 border border-white/10 shadow-2xl overflow-hidden">
@@ -331,7 +327,7 @@ export default function Home() {
                       <p className="text-2xl font-bold"><span className="text-white">{myWishesCount}</span><span className="text-slate-600">/</span><span className="text-slate-500">10</span></p>
                    </div>
                 </div>
-                {/* Stats y Barras */}
+                {/* Stats */}
                 <div className="mb-6">
                    <div className="flex justify-between items-center mb-2">
                       <span className="text-sm text-slate-400">Deseos agregados</span>
@@ -341,7 +337,6 @@ export default function Home() {
                       <div className="h-full bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 rounded-full transition-all duration-1000 ease-out shadow-lg shadow-purple-500/50" style={{ width: `${Math.min(progressPercentage, 100)}%` }}></div>
                    </div>
                 </div>
-                {/* Cards Stats */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                    <div className="bg-[#0B0E14]/50 backdrop-blur-sm border border-purple-500/20 rounded-xl p-4 hover:border-purple-500/40 transition-colors">
                       <div className="flex items-center gap-3 mb-2"><span className="text-2xl">✏️</span><span className="text-xs text-slate-500 uppercase tracking-wider">Mis Deseos</span></div>
@@ -384,7 +379,6 @@ export default function Home() {
                 <>
                   <WishForm session={session} onWishAdded={fetchWishes} currentWishes={wishes} groupId={selectedGroup.id} />
                   <div className="mt-16">
-                    {/* Header Mis Deseos */}
                     <div className="flex items-center gap-4 mb-8">
                       <span className="text-3xl">📝</span>
                       <h2 className="text-2xl font-bold text-white">Mis Deseos</h2>

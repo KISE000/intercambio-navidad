@@ -4,8 +4,52 @@ import { supabase } from '../lib/supabaseClient';
 import { toast } from 'sonner';
 import Avatar from './Avatar';
 
+// --- DND KIT IMPORTS ---
+import { 
+  DndContext, 
+  closestCenter, 
+  KeyboardSensor, 
+  PointerSensor, 
+  useSensor, 
+  useSensors 
+} from '@dnd-kit/core';
+import { 
+  arrayMove, 
+  SortableContext, 
+  sortableKeyboardCoordinates, 
+  rectSortingStrategy,
+  useSortable
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+// --- COMPONENTE INTERNO SORTABLE WRAPPER ---
+function SortableWishCard({ wish, children, disabled }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: wish.id, disabled });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : 'auto',
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="h-full touch-none">
+      {children}
+    </div>
+  );
+}
+
 export default function WishList({ wishes, currentUser, onDelete }) {
-  // Estado para el modal de imagen (Lightbox)
+  // Estado local para DND (UI optimista)
+  const [internalWishes, setInternalWishes] = useState(wishes);
   const [selectedImage, setSelectedImage] = useState(null);
   
   // --- ESTADOS PARA EDICIÓN ---
@@ -18,6 +62,11 @@ export default function WishList({ wishes, currentUser, onDelete }) {
 
   // --- ESTADO PARA PORTAL ---
   const [mounted, setMounted] = useState(false);
+
+  // Sincronizar props con estado interno si cambian desde fuera (ej: nuevo deseo añadido)
+  useEffect(() => {
+    setInternalWishes(wishes);
+  }, [wishes]);
 
   useEffect(() => {
     setMounted(true);
@@ -34,15 +83,24 @@ export default function WishList({ wishes, currentUser, onDelete }) {
     }
   }, [editingWish]);
 
-  // --- LÓGICA DE AGRUPACIÓN (Ahora extrae avatares) ---
-  const groupWishesByUser = (wishes) => {
-    return wishes.reduce((acc, wish) => {
+  // Configuración de sensores DND (Pointer con restricción para permitir click vs drag)
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Mover 8px para activar drag
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // --- LÓGICA DE AGRUPACIÓN ---
+  const groupWishesByUser = (list) => {
+    return list.reduce((acc, wish) => {
       const ownerId = wish.user_id;
-      // Extraemos perfil completo
       const profile = wish.profiles || {};
       const ownerName = profile.full_name || profile.username || 'Anónimo';
-      
-      // Extraemos configuración de avatar (con defaults)
       const avatarStyle = profile.avatar_style || 'robot';
       const avatarSeed = profile.avatar_seed || ownerId;
 
@@ -50,7 +108,6 @@ export default function WishList({ wishes, currentUser, onDelete }) {
         acc[ownerId] = {
             id: ownerId, 
             name: ownerName,
-            // Pasamos los datos del avatar al grupo
             avatarStyle,
             avatarSeed,
             wishes: [],
@@ -61,13 +118,63 @@ export default function WishList({ wishes, currentUser, onDelete }) {
     }, {});
   };
 
-  const groupedWishes = groupWishesByUser(wishes);
+  const groupedWishes = groupWishesByUser(internalWishes);
+
+  // Inicializar acordeón abierto por defecto para el usuario actual
+  useEffect(() => {
+    if (currentUser?.id && !expandedGroups[currentUser.id]) {
+        setExpandedGroups(prev => ({ ...prev, [currentUser.id]: true }));
+    }
+  }, [currentUser, expandedGroups]);
 
   const toggleGroup = (userId) => {
     setExpandedGroups(prev => ({ ...prev, [userId]: !prev[userId] }));
   };
 
-  // --- HANDLERS ---
+  // --- HANDLERS DND ---
+  const handleDragEnd = async (event) => {
+    const { active, over } = event;
+    
+    if (!over || active.id === over.id) return;
+
+    // Obtener los items involucrados
+    const activeWish = internalWishes.find(w => w.id === active.id);
+    
+    // Seguridad: Solo permitir reordenar mis propios deseos
+    if (activeWish.user_id !== currentUser.id) return;
+
+    const oldIndex = internalWishes.findIndex(w => w.id === active.id);
+    const newIndex = internalWishes.findIndex(w => w.id === over.id);
+
+    // 1. UI OPTIMISTA: Reordenar array localmente
+    const newWishes = arrayMove(internalWishes, oldIndex, newIndex);
+    setInternalWishes(newWishes);
+
+    // 2. PERSISTENCIA: Actualizar Supabase
+    // Filtramos solo mis deseos para recalcular sus posiciones relativas
+    const myWishes = newWishes.filter(w => w.user_id === currentUser.id);
+    
+    try {
+        // Actualizamos todos los deseos afectados
+        const updates = myWishes.map((w, index) => ({
+            id: w.id,
+            position: index
+        }));
+
+        // Ejecutar actualizaciones en paralelo
+        await Promise.all(updates.map(u => 
+            supabase.from('wishes').update({ position: u.position }).eq('id', u.id)
+        ));
+        
+        toast.success('Orden actualizado');
+    } catch (err) {
+        console.error(err);
+        toast.error('Error guardando el orden');
+        // Revertir en caso de error (opcional, por simplicidad dejamos el estado actual)
+    }
+  };
+
+  // --- HANDLERS ACCIONES ---
   const handleDelete = async (wishId) => {
     if (!window.confirm("¿Estás seguro de borrar este deseo?")) return;
     const { error } = await supabase.from('wishes').delete().eq('id', wishId);
@@ -111,9 +218,10 @@ export default function WishList({ wishes, currentUser, onDelete }) {
     }
   };
 
+  // --- LÓGICA DE TIEMPO "NUEVO" ---
   const isNew = (createdAt) => {
     const diffHours = (new Date() - new Date(createdAt)) / (1000 * 60 * 60);
-    return diffHours < 24;
+    return diffHours < 48; // <--- AUMENTADO A 48 HORAS PARA MEJOR UX
   };
 
   return (
@@ -214,144 +322,170 @@ export default function WishList({ wishes, currentUser, onDelete }) {
         document.body
       )}
 
-      {/* --- GRID DE CARDS --- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {Object.values(groupedWishes).map((userGroup) => {
-          const isOpen = expandedGroups[userGroup.id]; 
+      {/* --- CONTEXTO DND --- */}
+      <DndContext 
+        sensors={sensors} 
+        collisionDetection={closestCenter} 
+        onDragEnd={handleDragEnd}
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Object.values(groupedWishes).map((userGroup) => {
+            const isOpen = expandedGroups[userGroup.id]; 
+            const isMyGroup = userGroup.id === currentUser?.id;
 
-          return (
-            <Fragment key={userGroup.id}>
-              
-              {/* HEADER DEL USUARIO */}
-              <div className="col-span-full mt-4 first:mt-0">
-                  <button 
-                    onClick={() => toggleGroup(userGroup.id)}
-                    className={`w-full flex items-center justify-between p-3 pr-5 rounded-full border transition-all duration-300 group ${
-                        isOpen 
-                        ? 'bg-purple-900/10 border-purple-500/30 shadow-[0_0_20px_rgba(168,85,247,0.1)]' 
-                        : 'bg-[#151923] border-white/5 hover:border-purple-500/30 hover:bg-[#1A1F2E]'
-                    }`}
-                  >
-                    <div className="flex items-center gap-4">
-                        {/* AVATAR DINÁMICO */}
-                        <Avatar 
-                          seed={userGroup.avatarSeed} 
-                          style={userGroup.avatarStyle} 
-                          size="lg" 
-                        />
-                        
-                        <div className="text-left">
-                            <h3 className={`text-lg font-bold transition-colors tracking-tight ${isOpen ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>
-                                {userGroup.name}
-                            </h3>
-                            <p className="text-[10px] text-slate-500 font-mono uppercase tracking-widest">
-                                {userGroup.wishes.length} deseo{userGroup.wishes.length !== 1 ? 's' : ''}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center border border-white/10 transition-all duration-300 ${isOpen ? 'bg-purple-500 text-white rotate-180' : 'bg-slate-800 text-slate-400 group-hover:bg-slate-700'}`}>
-                        ▼
-                    </div>
-                  </button>
-              </div>
-
-              {/* TARJETAS DE DESEO */}
-              {isOpen && userGroup.wishes.map((wish, wishIndex) => {
-                const isMine = currentUser?.id === wish.user_id;
-                const priority = getPriorityConfig(wish.priority);
-                const showNewBadge = isNew(wish.created_at);
+            return (
+              <Fragment key={userGroup.id}>
                 
-                return (
-                  <div 
-                    key={wish.id} 
-                    className={`relative bg-gradient-to-br ${priority.gradient} backdrop-blur-sm border ${priority.border} rounded-2xl overflow-hidden group hover:scale-[1.02] transition-all duration-300 shadow-xl flex flex-col animate-in fade-in slide-in-from-top-4`}
-                    style={{ animationDelay: `${wishIndex * 50}ms` }}
+                {/* HEADER DEL USUARIO */}
+                <div className="col-span-full mt-4 first:mt-0">
+                    <button 
+                      onClick={() => toggleGroup(userGroup.id)}
+                      className={`w-full flex items-center justify-between p-3 pr-5 rounded-full border transition-all duration-300 group ${
+                          isOpen 
+                          ? 'bg-purple-900/10 border-purple-500/30 shadow-[0_0_20px_rgba(168,85,247,0.1)]' 
+                          : 'bg-[#151923] border-white/5 hover:border-purple-500/30 hover:bg-[#1A1F2E]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-4">
+                          <Avatar 
+                            seed={userGroup.avatarSeed} 
+                            style={userGroup.avatarStyle} 
+                            size="lg" 
+                          />
+                          
+                          <div className="text-left">
+                              <h3 className={`text-lg font-bold transition-colors tracking-tight ${isOpen ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>
+                                  {userGroup.name}
+                              </h3>
+                              <p className="text-[10px] text-slate-500 font-mono uppercase tracking-widest flex gap-2">
+                                  <span>{userGroup.wishes.length} deseo{userGroup.wishes.length !== 1 ? 's' : ''}</span>
+                                  {isMyGroup && <span className="text-purple-400 font-bold">• ARRASTRAR PARA ORDENAR</span>}
+                              </p>
+                          </div>
+                      </div>
+
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center border border-white/10 transition-all duration-300 ${isOpen ? 'bg-purple-500 text-white rotate-180' : 'bg-slate-800 text-slate-400 group-hover:bg-slate-700'}`}>
+                          ▼
+                      </div>
+                    </button>
+                </div>
+
+                {/* TARJETAS DE DESEO (SORTABLE CONTEXT SOLO SI ES MI GRUPO) */}
+                {isOpen && (
+                  <SortableContext 
+                    items={userGroup.wishes.map(w => w.id)} 
+                    strategy={rectSortingStrategy}
+                    disabled={!isMyGroup} // Deshabilitar DND en listas ajenas
                   >
-                    
-                    {showNewBadge && (
-                      <div className="absolute top-3 left-3 z-10">
-                        <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-lg animate-pulse tracking-wide">
-                          NUEVO
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="absolute top-3 right-3 z-10">
-                      <div className={`${priority.badge} text-[10px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 uppercase tracking-wider`}>
-                        <span>{priority.icon}</span>
-                        <span>{priority.label}</span>
-                      </div>
-                    </div>
-
-                    {wish.image_url && (
-                      <div 
-                        className="relative h-48 overflow-hidden cursor-pointer group/img shrink-0"
-                        onClick={() => setSelectedImage(wish.image_url)}
-                      >
-                        <img 
-                          src={wish.image_url} 
-                          alt={wish.title}
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-110"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#151923] via-transparent to-transparent opacity-90"></div>
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                          <div className="bg-white/20 backdrop-blur-sm rounded-full p-3 text-white text-2xl border border-white/20">
-                            🔍
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="bg-[#151923]/90 backdrop-blur-sm p-6 flex flex-col flex-1 border-t border-white/5">
-                      <h3 className="font-bold text-lg text-white leading-tight mb-3 break-words">
-                          {wish.title}
-                      </h3>
-                      {wish.details && (
-                        <p className="text-slate-400 text-sm leading-relaxed mb-4 flex-1 whitespace-pre-wrap break-words">
-                          {wish.details}
-                        </p>
-                      )}
-                      <div className="mt-auto pt-4 border-t border-white/10 flex items-center justify-between gap-3">
-                        <div className="flex-1">
-                          {wish.link && (
-                            <a 
-                              href={wish.link} 
-                              target="_blank" 
-                              rel="noopener noreferrer" 
-                              className="inline-flex items-center gap-1.5 text-[10px] text-purple-400 hover:text-white font-bold uppercase tracking-wider transition-colors hover:underline"
+                    {userGroup.wishes.map((wish, wishIndex) => {
+                      const isMine = currentUser?.id === wish.user_id;
+                      const priority = getPriorityConfig(wish.priority);
+                      const showNewBadge = isNew(wish.created_at);
+                      
+                      return (
+                        <SortableWishCard key={wish.id} wish={wish} disabled={!isMyGroup}>
+                            <div 
+                              className={`relative bg-gradient-to-br ${priority.gradient} backdrop-blur-sm border ${priority.border} rounded-2xl overflow-hidden group hover:scale-[1.02] transition-all duration-300 shadow-xl flex flex-col h-full`}
                             >
-                              🔗 Ver Enlace
-                            </a>
-                          )}
-                        </div>
-                        {isMine && (
-                          <div className="flex gap-2">
-                            <button 
-                              onClick={() => setEditingWish(wish)}
-                              className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all flex items-center justify-center"
-                              title="Editar"
-                            >
-                              ✏️
-                            </button>
-                            <button 
-                              onClick={() => handleDelete(wish.id)}
-                              className="w-8 h-8 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center"
-                              title="Borrar"
-                            >
-                              🗑️
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </Fragment>
-          );
-        })}
-      </div>
+                              
+                              {/* Drag Handle Indicador (Solo para el dueño) */}
+                              {isMine && (
+                                <div className="absolute top-0 inset-x-0 h-4 bg-gradient-to-b from-white/5 to-transparent z-20 cursor-grab active:cursor-grabbing hover:bg-white/10 flex justify-center items-start pt-1">
+                                  <div className="w-8 h-1 rounded-full bg-white/20"></div>
+                                </div>
+                              )}
+
+                              {showNewBadge && (
+                                <div className="absolute top-3 left-3 z-10">
+                                  <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-lg animate-pulse tracking-wide">
+                                    NUEVO
+                                  </span>
+                                </div>
+                              )}
+
+                              <div className="absolute top-3 right-3 z-10">
+                                <div className={`${priority.badge} text-[10px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 uppercase tracking-wider`}>
+                                  <span>{priority.icon}</span>
+                                  <span>{priority.label}</span>
+                                </div>
+                              </div>
+
+                              {wish.image_url && (
+                                <div 
+                                  className="relative h-48 overflow-hidden cursor-pointer group/img shrink-0 mt-4 mx-4 rounded-xl border border-white/5"
+                                  onClick={() => setSelectedImage(wish.image_url)}
+                                  // Evitar que el drag se active al intentar hacer click en la imagen (opcional, handled by sensors)
+                                  onPointerDown={(e) => e.stopPropagation()} 
+                                >
+                                  <img 
+                                    src={wish.image_url} 
+                                    alt={wish.title}
+                                    className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-110"
+                                  />
+                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                                    <div className="bg-white/20 backdrop-blur-sm rounded-full p-3 text-white text-2xl border border-white/20">
+                                      🔍
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              <div className="bg-[#151923]/0 p-6 flex flex-col flex-1">
+                                <h3 className="font-bold text-lg text-white leading-tight mb-3 break-words">
+                                    {wish.title}
+                                </h3>
+                                {wish.details && (
+                                  <p className="text-slate-400 text-sm leading-relaxed mb-4 flex-1 whitespace-pre-wrap break-words">
+                                    {wish.details}
+                                  </p>
+                                )}
+                                <div className="mt-auto pt-4 border-t border-white/10 flex items-center justify-between gap-3 relative z-30">
+                                  <div className="flex-1">
+                                    {wish.link && (
+                                      <a 
+                                        href={wish.link} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer" 
+                                        className="inline-flex items-center gap-1.5 text-[10px] text-purple-400 hover:text-white font-bold uppercase tracking-wider transition-colors hover:underline"
+                                        onPointerDown={(e) => e.stopPropagation()} 
+                                      >
+                                        🔗 Ver Enlace
+                                      </a>
+                                    )}
+                                  </div>
+                                  {isMine && (
+                                    <div className="flex gap-2">
+                                      <button 
+                                        onClick={() => setEditingWish(wish)}
+                                        onPointerDown={(e) => e.stopPropagation()}
+                                        className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all flex items-center justify-center"
+                                        title="Editar"
+                                      >
+                                        ✏️
+                                      </button>
+                                      <button 
+                                        onClick={() => handleDelete(wish.id)}
+                                        onPointerDown={(e) => e.stopPropagation()}
+                                        className="w-8 h-8 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center"
+                                        title="Borrar"
+                                      >
+                                        🗑️
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                        </SortableWishCard>
+                      );
+                    })}
+                  </SortableContext>
+                )}
+              </Fragment>
+            );
+          })}
+        </div>
+      </DndContext>
     </>
   );
 }
