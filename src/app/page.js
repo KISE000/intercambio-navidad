@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner'; // Asegurar que está importado
 import Auth from '../components/Auth';
 import WishForm from '../components/WishForm';
 import WishList from '../components/WishList';
@@ -21,21 +22,16 @@ export default function Home() {
   
   const router = useRouter();
 
-  // Estado para la nieve
   const [snowflakes, setSnowflakes] = useState([]);
-
-  // --- ESTADOS PARA MENÚS ---
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAvatarSelectorOpen, setIsAvatarSelectorOpen] = useState(false);
   
   const menuRef = useRef(null);
 
-  // --- HELPERS PARA AVATAR (Local User) ---
   const getUserAvatarStyle = () => session?.user?.user_metadata?.avatar_style || 'robot';
   const getUserAvatarSeed = () => session?.user?.user_metadata?.avatar_seed || session?.user?.email;
 
-  // --- 1. Efecto de Nieve ---
   useEffect(() => {
     const flakes = Array.from({ length: 50 }).map((_, i) => ({
       id: i,
@@ -68,14 +64,11 @@ export default function Home() {
     </div>
   );
 
-  // --- 2. Lógica Supabase (CORREGIDA) ---
   const fetchWishes = useCallback(async () => {
     if (!selectedGroup) return;
     
     setLoadingWishes(true);
     
-    // CORRECCIÓN: Eliminado 'full_name' que causaba el error si no existe en la tabla.
-    // Solo pedimos las columnas que sabemos que existen: username, avatar_style, avatar_seed.
     const { data, error } = await supabase
       .from('wishes')
       .select('*, profiles(username, avatar_style, avatar_seed)') 
@@ -84,7 +77,6 @@ export default function Home() {
 
     if (error) {
       console.error('Error fetching wishes:', error);
-      // No seteamos data vacía aquí para poder ver el error en consola si persiste
     } else {
       setWishes(data || []);
     }
@@ -93,7 +85,6 @@ export default function Home() {
     
   }, [selectedGroup]);
 
-  // --- 3. Auth State Change ---
   useEffect(() => {
     let mounted = true;
     
@@ -119,7 +110,6 @@ export default function Home() {
     if (session && selectedGroup) fetchWishes();
   }, [session, selectedGroup, fetchWishes]);
 
-  // ... Resto de lógica de UI ...
   useEffect(() => {
     function handleClickOutside(event) {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -145,6 +135,20 @@ export default function Home() {
     await supabase.auth.signOut();
   };
 
+  // --- LÓGICA DE INVITACIÓN (NUEVO) ---
+  const handleInvite = () => {
+    if (!selectedGroup) return;
+    const shareText = `🎄 ¡Únete a mi intercambio "${selectedGroup.name}"!\n\n1. Entra a: ${window.location.origin}\n2. Usa el código: ${selectedGroup.code}`;
+    
+    navigator.clipboard.writeText(shareText).then(() => {
+      toast.success("📋 Invitación copiada al portapapeles");
+      setIsMenuOpen(false);
+      setIsMobileMenuOpen(false);
+    }).catch(() => {
+      toast.error("Error al copiar");
+    });
+  };
+
   const filteredWishes = wishes.filter(w => {
     if (!session) return false;
     return activeTab === 'mine' 
@@ -152,13 +156,11 @@ export default function Home() {
       : w.user_id !== session.user.id;
   });
 
-  // --- ESTADÍSTICAS ---
   const myWishesCount = wishes.filter(w => w.user_id === session?.user?.id).length;
   const othersWishesCount = wishes.filter(w => w.user_id !== session?.user?.id).length;
   const totalWishes = wishes.length;
   const progressPercentage = (myWishesCount / 10) * 100;
 
-  // --- RENDERIZADO ---
   if (loading) return (
     <div className="min-h-screen bg-[#0B0E14] flex items-center justify-center text-purple-500 relative overflow-hidden">
       <SnowBackground />
@@ -235,6 +237,16 @@ export default function Home() {
                  <p className="text-lg text-white font-medium truncate">{session.user.email}</p>
                </div>
                <div className="p-3 space-y-2">
+                 
+                 {/* BOTÓN INVITAR (DESKTOP) */}
+                 <button 
+                    onClick={handleInvite} 
+                    className="w-full text-left px-4 py-3 text-base text-slate-300 hover:text-white hover:bg-white/5 rounded-xl flex items-center gap-3 transition-colors group"
+                 >
+                    <span className="text-xl group-hover:scale-110 transition-transform">🔗</span> 
+                    Invitar Amigos
+                 </button>
+
                  <button 
                     onClick={() => { setIsAvatarSelectorOpen(true); setIsMenuOpen(false); }} 
                     className="w-full text-left px-4 py-3 text-base text-slate-300 hover:text-white hover:bg-white/5 rounded-xl flex items-center gap-3 transition-colors group"
@@ -285,6 +297,16 @@ export default function Home() {
               </div>
             </div>
             <div className="p-4 space-y-2">
+              
+              {/* BOTÓN INVITAR (MOVIL) */}
+              <button 
+                  onClick={handleInvite} 
+                  className="w-full text-left px-4 py-4 text-base text-slate-300 hover:text-white hover:bg-white/5 rounded-xl flex items-center gap-3 transition-colors group"
+              >
+                <span className="text-2xl group-hover:scale-110 transition-transform">🔗</span>
+                <span>Invitar Amigos</span>
+              </button>
+
               <button 
                   onClick={() => { setIsAvatarSelectorOpen(true); setIsMobileMenuOpen(false); }} 
                   className="w-full text-left px-4 py-4 text-base text-slate-300 hover:text-white hover:bg-white/5 rounded-xl flex items-center gap-3 transition-colors group"
@@ -307,8 +329,9 @@ export default function Home() {
         </>
       )}
 
-      {/* HERO SECTION */}
+      {/* HERO SECTION Y RESTO DEL CONTENIDO (Sin cambios) */}
       <div className="relative z-10 max-w-4xl mx-auto px-4 mt-8 mb-12">
+         {/* ... El resto del layout principal se mantiene igual ... */}
          <div className="relative group">
           <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 rounded-3xl opacity-20 group-hover:opacity-30 transition duration-500 blur-xl"></div>
           <div className="relative bg-gradient-to-br from-[#151923] to-[#0B0E14] rounded-3xl p-8 md:p-10 border border-white/10 shadow-2xl overflow-hidden">
@@ -369,7 +392,6 @@ export default function Home() {
 
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-10">
           
-          {/* RENDERIZADO CONDICIONAL CON SKELETON */}
           {loadingWishes ? (
              <WishListSkeleton />
           ) : (
@@ -421,15 +443,12 @@ export default function Home() {
         </div>
       </div>
       
-      {/* MODAL SELECTOR DE AVATAR (NUEVO COMPONENTE) */}
       <AvatarSelector 
         isOpen={isAvatarSelectorOpen} 
         onClose={() => setIsAvatarSelectorOpen(false)}
         currentSession={session}
         onUpdate={(updatedUser) => {
-          // Actualización optimista de la sesión para ver el cambio inmediato
           setSession({ ...session, user: updatedUser });
-          // Importante: recargar lista para ver tu propio avatar cambiado en las tarjetas
           fetchWishes();
         }}
       />

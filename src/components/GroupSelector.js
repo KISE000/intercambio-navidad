@@ -107,16 +107,27 @@ export default function GroupSelector({ session, onSelectGroup, onLogout }) {
     }
   };
 
+  // --- NUEVA FUNCIÓN: COMPARTIR ---
+  const handleShare = (e, group) => {
+    e.stopPropagation(); // Evita que se seleccione el grupo al hacer click en compartir
+    const shareText = `🎄 ¡Únete a mi intercambio "${group.name}"!\n\n1. Entra a: ${window.location.origin}\n2. Usa el código: ${group.code}`;
+    
+    navigator.clipboard.writeText(shareText).then(() => {
+      toast.success("📋 Invitación copiada al portapapeles");
+    }).catch(() => {
+      toast.error("No se pudo copiar al portapapeles");
+    });
+  };
+
   return (
     <div className="flex flex-col items-center justify-center min-h-[80vh] w-full px-4 relative z-10 animate-in fade-in zoom-in-95 duration-500">
       
-      {/* Contenedor Glow (Igual que Auth) */}
+      {/* Contenedor Glow */}
       <div className="relative group w-full max-w-md">
         <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 rounded-[2rem] opacity-75 blur-xl group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
         
         <div className="relative bg-[#0f111a]/90 backdrop-blur-xl border border-white/10 rounded-[1.7rem] shadow-2xl p-8 overflow-hidden">
           
-          {/* Textura de Ruido */}
           <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 pointer-events-none"></div>
 
           {/* Header */}
@@ -146,12 +157,11 @@ export default function GroupSelector({ session, onSelectGroup, onLogout }) {
                 )}
 
                 {groups.map((group) => (
-                  <button
+                  <div
                     key={group.id}
                     onClick={() => onSelectGroup(group)}
-                    className="w-full group/item relative px-5 py-4 bg-[#151923]/80 hover:bg-purple-900/10 border border-white/5 hover:border-purple-500/50 rounded-xl transition-all duration-300 flex items-center justify-between overflow-hidden shadow-lg"
+                    className="w-full cursor-pointer group/item relative px-5 py-4 bg-[#151923]/80 hover:bg-purple-900/10 border border-white/5 hover:border-purple-500/50 rounded-xl transition-all duration-300 flex items-center justify-between overflow-hidden shadow-lg"
                   >
-                    {/* Hover Glow interno */}
                     <div className="absolute inset-0 bg-gradient-to-r from-purple-600/5 to-transparent opacity-0 group-hover/item:opacity-100 transition-opacity duration-500" />
                     
                     <div className="flex items-center gap-4 z-10">
@@ -162,19 +172,30 @@ export default function GroupSelector({ session, onSelectGroup, onLogout }) {
                          <span className="font-bold text-slate-200 group-hover/item:text-white block text-sm tracking-wide">{group.name}</span>
                          <span className="text-[10px] text-slate-500 font-mono flex items-center gap-1">
                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                           CODE: <span className="text-purple-400">{group.code}</span>
+                           CODE: <span className="text-purple-400 font-bold">{group.code}</span>
                          </span>
                       </div>
                     </div>
                     
-                    <span className={`z-10 text-[9px] uppercase font-bold px-2 py-1 rounded border tracking-widest ${
-                      group.role === 'admin' 
-                        ? 'bg-purple-500/10 text-purple-300 border-purple-500/20 shadow-[0_0_10px_rgba(168,85,247,0.1)]' 
-                        : 'bg-slate-700/30 text-slate-400 border-slate-600/30'
-                    }`}>
-                      {group.role}
-                    </span>
-                  </button>
+                    <div className="z-10 flex items-center gap-2">
+                        {/* Botón Compartir (NUEVO) */}
+                        <button 
+                            onClick={(e) => handleShare(e, group)}
+                            className="p-2 rounded-full hover:bg-white/10 text-slate-500 hover:text-purple-400 transition-colors"
+                            title="Copiar Invitación"
+                        >
+                            🔗
+                        </button>
+
+                        <span className={`text-[9px] uppercase font-bold px-2 py-1 rounded border tracking-widest ${
+                        group.role === 'admin' 
+                            ? 'bg-purple-500/10 text-purple-300 border-purple-500/20 shadow-[0_0_10px_rgba(168,85,247,0.1)]' 
+                            : 'bg-slate-700/30 text-slate-400 border-slate-600/30'
+                        }`}>
+                        {group.role}
+                        </span>
+                    </div>
+                  </div>
                 ))}
               </div>
 
@@ -204,7 +225,7 @@ export default function GroupSelector({ session, onSelectGroup, onLogout }) {
             </div>
           )}
 
-          {/* --- VISTA: CREAR GRUPO --- */}
+          {/* ... Vistas CREATE y JOIN (Sin cambios) ... */}
           {viewMode === 'create' && (
             <form onSubmit={handleCreateGroup} className="mb-4 animate-in fade-in slide-in-from-bottom-4 relative z-10">
                <div className="space-y-2 mb-6 group/input">
@@ -227,7 +248,6 @@ export default function GroupSelector({ session, onSelectGroup, onLogout }) {
             </form>
           )}
 
-          {/* --- VISTA: UNIRSE A GRUPO --- */}
           {viewMode === 'join' && (
             <form onSubmit={handleJoinGroup} className="mb-4 animate-in fade-in slide-in-from-bottom-4 relative z-10">
                <div className="space-y-2 mb-6 group/input">
