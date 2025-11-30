@@ -1,7 +1,8 @@
 import { useState, Fragment, useEffect } from 'react';
+import { createPortal } from 'react-dom'; // <--- IMPORTANTE
 import { supabase } from '../lib/supabaseClient';
 import { toast } from 'sonner';
-import Avatar from './Avatar'; // <--- NUEVA IMPORTACIÓN
+import Avatar from './Avatar';
 
 export default function WishList({ wishes, currentUser, onDelete }) {
   // Estado para el modal de imagen (Lightbox)
@@ -14,6 +15,13 @@ export default function WishList({ wishes, currentUser, onDelete }) {
 
   // --- ESTADO PARA ACORDEÓN ---
   const [expandedGroups, setExpandedGroups] = useState({});
+
+  // --- ESTADO PARA PORTAL (Evita error de hidratación) ---
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (editingWish) {
@@ -51,7 +59,7 @@ export default function WishList({ wishes, currentUser, onDelete }) {
     setExpandedGroups(prev => ({ ...prev, [userId]: !prev[userId] }));
   };
 
-  // --- HANDLERS (Solo Delete y Update para el dueño) ---
+  // --- HANDLERS ---
   const handleDelete = async (wishId) => {
     if (!window.confirm("¿Estás seguro de borrar este deseo?")) return;
     const { error } = await supabase.from('wishes').delete().eq('id', wishId);
@@ -102,9 +110,9 @@ export default function WishList({ wishes, currentUser, onDelete }) {
 
   return (
     <>
-      {/* --- MODAL EDICIÓN (Mejorado visualmente) --- */}
-      {editingWish && (
-        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setEditingWish(null)}>
+      {/* --- MODAL EDICIÓN (USANDO PORTAL) --- */}
+      {mounted && editingWish && createPortal(
+        <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setEditingWish(null)}>
           <div className="bg-[#0f111a] border border-white/10 w-full max-w-md rounded-3xl p-8 shadow-2xl relative" onClick={e => e.stopPropagation()}>
             <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">✏️ Editar Deseo</h3>
             
@@ -167,32 +175,39 @@ export default function WishList({ wishes, currentUser, onDelete }) {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* --- LIGHTBOX MODAL --- */}
-      {selectedImage && (
+      {/* --- LIGHTBOX MODAL (USANDO PORTAL + FIX) --- */}
+      {mounted && selectedImage && createPortal(
         <div 
-          className="fixed inset-0 bg-black/95 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200 backdrop-blur-sm"
+          className="fixed inset-0 bg-black/95 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200 backdrop-blur-md"
           onClick={() => setSelectedImage(null)}
         >
-          <div className="relative max-w-4xl max-h-[90vh] w-full">
+          {/* BOTÓN FIXED: Ahora sí, relativo a la ventana gracias al Portal */}
+          <button 
+            className="fixed top-6 right-6 z-[10000] bg-slate-900 text-white w-12 h-12 rounded-full flex items-center justify-center border border-white/20 hover:bg-red-600 transition-colors shadow-2xl active:scale-95"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedImage(null);
+            }}
+          >
+            <span className="text-xl font-bold">✕</span>
+          </button>
+
+          <div className="relative w-full h-full flex items-center justify-center pointer-events-none">
             <img 
               src={selectedImage} 
               alt="Zoom" 
-              className="w-full h-full object-contain rounded-lg shadow-2xl"
+              className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl pointer-events-auto"
             />
-            <button 
-              className="absolute -top-4 -right-4 bg-slate-800 text-white w-10 h-10 rounded-full flex items-center justify-center border border-white/20 hover:bg-red-500 transition-colors"
-              onClick={() => setSelectedImage(null)}
-            >
-              ✕
-            </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* --- GRID DE CARDS AGRUPADAS --- */}
+      {/* --- GRID DE CARDS --- */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {Object.values(groupedWishes).map((userGroup) => {
           const isOpen = expandedGroups[userGroup.id]; 
@@ -200,7 +215,7 @@ export default function WishList({ wishes, currentUser, onDelete }) {
           return (
             <Fragment key={userGroup.id}>
               
-              {/* HEADER DEL USUARIO (Acordeón) */}
+              {/* HEADER DEL USUARIO */}
               <div className="col-span-full mt-4 first:mt-0">
                   <button 
                     onClick={() => toggleGroup(userGroup.id)}
@@ -211,7 +226,6 @@ export default function WishList({ wishes, currentUser, onDelete }) {
                     }`}
                   >
                     <div className="flex items-center gap-4">
-                        {/* AQUI IMPLEMENTAMOS EL AVATAR */}
                         <Avatar seed={userGroup.id} size="lg" />
                         
                         <div className="text-left">
@@ -224,14 +238,13 @@ export default function WishList({ wishes, currentUser, onDelete }) {
                         </div>
                     </div>
 
-                    {/* Icono Flecha */}
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center border border-white/10 transition-all duration-300 ${isOpen ? 'bg-purple-500 text-white rotate-180' : 'bg-slate-800 text-slate-400 group-hover:bg-slate-700'}`}>
                         ▼
                     </div>
                   </button>
               </div>
 
-              {/* TARJETAS (Solo visibles si el grupo está abierto) */}
+              {/* TARJETAS DE DESEO */}
               {isOpen && userGroup.wishes.map((wish, wishIndex) => {
                 const isMine = currentUser?.id === wish.user_id;
                 const priority = getPriorityConfig(wish.priority);
@@ -244,7 +257,6 @@ export default function WishList({ wishes, currentUser, onDelete }) {
                     style={{ animationDelay: `${wishIndex * 50}ms` }}
                   >
                     
-                    {/* Badge NUEVO */}
                     {showNewBadge && (
                       <div className="absolute top-3 left-3 z-10">
                         <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-lg animate-pulse tracking-wide">
@@ -253,7 +265,6 @@ export default function WishList({ wishes, currentUser, onDelete }) {
                       </div>
                     )}
 
-                    {/* Badge de Prioridad */}
                     <div className="absolute top-3 right-3 z-10">
                       <div className={`${priority.badge} text-[10px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 uppercase tracking-wider`}>
                         <span>{priority.icon}</span>
@@ -261,7 +272,6 @@ export default function WishList({ wishes, currentUser, onDelete }) {
                       </div>
                     </div>
 
-                    {/* Imagen Grande */}
                     {wish.image_url && (
                       <div 
                         className="relative h-48 overflow-hidden cursor-pointer group/img shrink-0"
@@ -273,8 +283,6 @@ export default function WishList({ wishes, currentUser, onDelete }) {
                           className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-110"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-[#151923] via-transparent to-transparent opacity-90"></div>
-                        
-                        {/* Overlay de Zoom */}
                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                           <div className="bg-white/20 backdrop-blur-sm rounded-full p-3 text-white text-2xl border border-white/20">
                             🔍
@@ -283,23 +291,21 @@ export default function WishList({ wishes, currentUser, onDelete }) {
                       </div>
                     )}
 
-                    {/* Contenido Principal */}
                     <div className="bg-[#151923]/90 backdrop-blur-sm p-6 flex flex-col flex-1 border-t border-white/5">
                       
-                      <h3 className="font-bold text-lg text-white leading-tight mb-2 line-clamp-2">
+                      {/* TITULO */}
+                      <h3 className="font-bold text-lg text-white leading-tight mb-3 break-words">
                           {wish.title}
                       </h3>
 
+                      {/* DETALLES */}
                       {wish.details && (
-                        <p className="text-slate-400 text-sm leading-relaxed mb-4 line-clamp-3 flex-1">
+                        <p className="text-slate-400 text-sm leading-relaxed mb-4 flex-1 whitespace-pre-wrap break-words">
                           {wish.details}
                         </p>
                       )}
 
-                      {/* Footer con Acciones */}
                       <div className="mt-auto pt-4 border-t border-white/10 flex items-center justify-between gap-3">
-                        
-                        {/* Link Externo (Izquierda) */}
                         <div className="flex-1">
                           {wish.link && (
                             <a 
@@ -313,7 +319,6 @@ export default function WishList({ wishes, currentUser, onDelete }) {
                           )}
                         </div>
                         
-                        {/* BOTONES DE EDICIÓN (SOLO SI ES MÍO) */}
                         {isMine && (
                           <div className="flex gap-2">
                             <button 
@@ -323,7 +328,6 @@ export default function WishList({ wishes, currentUser, onDelete }) {
                             >
                               ✏️
                             </button>
-                            
                             <button 
                               onClick={() => handleDelete(wish.id)}
                               className="w-8 h-8 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center"
