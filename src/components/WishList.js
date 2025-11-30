@@ -1,4 +1,4 @@
-import { useState, Fragment, useEffect, cloneElement } from 'react';
+import { useState, Fragment, useEffect, cloneElement, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabaseClient';
 import { toast } from 'sonner';
@@ -54,9 +54,9 @@ const isNew = (createdAt) => {
   return diffHours < 48;
 };
 
-// --- SUB-COMPONENTE: TARJETA INDIVIDUAL ---
-// Ahora acepta 'dragListeners' para aplicarlos SOLO al botón de arrastre (Handle)
-function WishCardItem({ wish, isMine, onEdit, onDelete, onImageClick, dragListeners }) {
+// --- SUB-COMPONENTE: TARJETA INDIVIDUAL (ENVUELTO EN MEMO) ---
+// 🛑 FIX: Usamos memo para evitar re-renders innecesarios.
+const MemoizedWishCardItem = memo(function WishCardItem({ wish, isMine, onEdit, onDelete, onImageClick, dragListeners }) {
   const [isExpanded, setIsExpanded] = useState(false);
   
   const priority = getPriorityConfig(wish.priority);
@@ -183,7 +183,7 @@ function WishCardItem({ wish, isMine, onEdit, onDelete, onImageClick, dragListen
       </div>
     </div>
   );
-}
+});
 
 // --- COMPONENTE WRAPPER DND ---
 function SortableWishCard({ wish, children, disabled }) {
@@ -208,6 +208,7 @@ function SortableWishCard({ wish, children, disabled }) {
   return (
     // Pasamos 'listeners' al hijo (WishCardItem) usando cloneElement para que solo el handle active el drag
     <div ref={setNodeRef} style={style} {...attributes} className="h-full relative">
+      {/* 🛑 Se usa MemoizedWishCardItem */}
       {cloneElement(children, { dragListeners: listeners })}
     </div>
   );
@@ -264,8 +265,10 @@ export default function WishList({ wishes, currentUser, onDelete }) {
   const groupWishesByUser = (list) => {
     return list.reduce((acc, wish) => {
       const ownerId = wish.user_id;
-      const profile = wish.profiles || {};
-      const ownerName = profile.full_name || profile.username || 'Anónimo';
+      // 🛑 OPTIMIZACIÓN: Los datos de perfil (profiles) vienen pre-cargados desde page.js
+      const profile = wish.profiles || {}; 
+      // Si el perfil no tiene full_name/username, usamos el correo truncado o Anónimo.
+      const ownerName = profile.username || (wish.profiles?.email?.split('@')[0]) || 'Anónimo'; 
       const avatarStyle = profile.avatar_style || 'robot';
       const avatarSeed = profile.avatar_seed || ownerId;
 
@@ -317,18 +320,29 @@ export default function WishList({ wishes, currentUser, onDelete }) {
 
     const myWishes = newWishes.filter(w => w.user_id === currentUser.id);
     
+    // 🛑 OPTIMIZACIÓN CRÍTICA: BATCH UPDATE VIA RPC
     try {
         const updates = myWishes.map((w, index) => ({
             id: w.id,
             position: index
         }));
-        await Promise.all(updates.map(u => 
-            supabase.from('wishes').update({ position: u.position }).eq('id', u.id)
-        ));
+
+        // Convertir el array de objetos a JSON string para la llamada RPC
+        const updatesJson = JSON.stringify(updates);
+        
+        const { error: rpcError } = await supabase.rpc('reorder_wishes', {
+            updates_json: updatesJson
+        });
+        
+        if (rpcError) throw rpcError;
+
+        console.log(`✅ ${updates.length} posiciones actualizadas vía RPC.`);
         toast.success('Orden actualizado');
     } catch (err) {
-        console.error(err);
+        console.error("❌ Error guardando el orden vía RPC:", err);
         toast.error('Error guardando el orden');
+        // Si falla, forzamos refetch para revertir el orden visualmente
+        if (onDelete) onDelete(); 
     }
   };
 
@@ -451,7 +465,7 @@ export default function WishList({ wishes, currentUser, onDelete }) {
                       const isMine = currentUser?.id === wish.user_id;
                       return (
                         <SortableWishCard key={wish.id} wish={wish} disabled={!isMyGroup}>
-                            <WishCardItem 
+                            <MemoizedWishCardItem 
                               wish={wish}
                               isMine={isMine}
                               onEdit={setEditingWish}
