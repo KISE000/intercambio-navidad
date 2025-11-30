@@ -13,6 +13,8 @@ import Avatar from '../components/Avatar';
 import AvatarSelector from '../components/AvatarSelector'; 
 import GroupMembersModal from '../components/GroupMembersModal';
 import GroupSettingsModal from '../components/GroupSettingsModal';
+// 🛑 Necesitas crear este componente:
+// import ThemeSettingsModal from '../components/ThemeSettingsModal';
 
 export default function Home() {
   const [session, setSession] = useState(null);
@@ -32,6 +34,8 @@ export default function Home() {
   const [isAvatarSelectorOpen, setIsAvatarSelectorOpen] = useState(false);
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  // 🛑 Nuevo estado para ajustes visuales (global)
+  const [isThemeSettingsOpen, setIsThemeSettingsOpen] = useState(false);
   
   const menuRef = useRef(null);
 
@@ -270,44 +274,65 @@ export default function Home() {
                  )}
                </div>
 
-               {/* Menu Actions */}
+               {/* 🛑 INICIO DE MENÚ REESTRUCTURADO SIMPLIFICADO */}
                <div className="p-2 space-y-1">
-                 
-                 {isAdmin && (
-                   <>
-                    <button onClick={() => { setIsSettingsModalOpen(true); setIsMenuOpen(false); }} className="menu-item group">
-                        <span className="menu-icon-box text-cyan-400 group-hover:bg-cyan-500/20 group-hover:text-cyan-300">⚙️</span> 
-                        <span>Configuración</span>
-                    </button>
-                    <button onClick={() => { setIsMembersModalOpen(true); setIsMenuOpen(false); }} className="menu-item group">
-                        <span className="menu-icon-box text-yellow-400 group-hover:bg-yellow-500/20 group-hover:text-yellow-300">👥</span> 
-                        <span>Gestión de Miembros</span>
-                    </button>
-                   </>
-                 )}
+                   {/* I. HERRAMIENTAS DE ADMINISTRACIÓN */}
+                   {isAdmin && (
+                       <>
+                           <h4 className="text-[9px] text-yellow-500/70 font-mono uppercase tracking-widest px-2 pt-1 pb-1">ADMIN TOOLS</h4>
+                           
+                           <button onClick={() => { setIsSettingsModalOpen(true); setIsMenuOpen(false); }} className="menu-item group">
+                               {/* 🛑 RENOMBRE */}
+                               <span className="menu-icon-box text-cyan-400 group-hover:bg-cyan-500/20 group-hover:text-cyan-300">⚙️</span> 
+                               <span>Panel Admin</span>
+                           </button>
+                           
+                           <button onClick={() => { setIsMembersModalOpen(true); setIsMenuOpen(false); }} className="menu-item group">
+                               <span className="menu-icon-box text-yellow-400 group-hover:bg-yellow-500/20 group-hover:text-yellow-300">👥</span> 
+                               <span>Gestión de Miembros</span>
+                           </button>
+                           <div className="h-px bg-white/5 my-1 mx-2"></div>
+                       </>
+                   )}
 
-                 <button onClick={handleInvite} className="menu-item group">
-                    <span className="menu-icon-box text-blue-400 group-hover:bg-blue-500/20 group-hover:text-blue-300">🔗</span> 
-                    <span>Invitar Amigos</span>
-                 </button>
+                   {/* II. CONFIGURACIÓN DE CUENTA */}
+                   <h4 className="text-[9px] text-slate-500 font-mono uppercase tracking-widest px-2 pt-1 pb-1">MI CUENTA</h4>
+                   
+                   {/* 🛑 NUEVO: Ajustes Visuales (Global) */}
+                   <button onClick={() => { setIsThemeSettingsOpen(true); setIsMenuOpen(false); }} className="menu-item group">
+                       <span className="menu-icon-box text-pink-400 group-hover:bg-pink-500/20 group-hover:text-pink-300">🖌️</span> 
+                       <span>Ajustes Visuales</span>
+                   </button>
+                   
+                   <button onClick={() => { setIsAvatarSelectorOpen(true); setIsMenuOpen(false); }} className="menu-item group">
+                       <span className="menu-icon-box text-pink-400 group-hover:bg-pink-500/20 group-hover:text-pink-300">🎨</span> 
+                       <span>Personalizar Avatar</span>
+                   </button>
+                   <div className="h-px bg-white/5 my-1 mx-2"></div>
 
-                 <button onClick={() => { setIsAvatarSelectorOpen(true); setIsMenuOpen(false); }} className="menu-item group">
-                    <span className="menu-icon-box text-pink-400 group-hover:bg-pink-500/20 group-hover:text-pink-300">🎨</span> 
-                    <span>Personalizar Avatar</span>
-                 </button>
-                 
-                 <div className="h-px bg-white/5 my-1 mx-2"></div>
+                   {/* III. GRUPO Y CONEXIÓN */}
+                   <h4 className="text-[9px] text-slate-500 font-mono uppercase tracking-widest px-2 pt-1 pb-1">GRUPO</h4>
 
-                 <button onClick={() => { setSelectedGroup(null); setIsMenuOpen(false); }} className="menu-item group">
-                   <span className="menu-icon-box text-slate-400 group-hover:bg-slate-500/20 group-hover:text-slate-200">🔄</span> 
-                   <span>Cambiar de Grupo</span>
-                 </button>
-                 
-                 <button onClick={handleLogout} className="menu-item group hover:!bg-red-500/10 hover:!border-red-500/20">
-                   <span className="menu-icon-box text-red-400 group-hover:bg-red-500/20 group-hover:text-red-300">🚪</span> 
-                   <span className="group-hover:text-red-300">Cerrar Sesión</span>
-                 </button>
+                   <button onClick={handleInvite} className="menu-item group">
+                       <span className="menu-icon-box text-blue-400 group-hover:bg-blue-500/20 group-hover:text-blue-300">🔗</span> 
+                       <span>Invitar Amigos</span>
+                   </button>
+
+                   <button onClick={() => { setSelectedGroup(null); setIsMenuOpen(false); }} className="menu-item group">
+                       <span className="menu-icon-box text-slate-400 group-hover:bg-slate-500/20 group-hover:text-slate-200">🔄</span> 
+                       <span>Cambiar de Grupo</span>
+                   </button>
+                   
+                   {/* Separador solo para Logout */}
+                   <div className="h-px bg-white/5 my-1 mx-2"></div>
+
+                   <button onClick={handleLogout} className="menu-item group hover:!bg-red-500/10 hover:!border-red-500/20">
+                       <span className="menu-icon-box text-red-400 group-hover:bg-red-500/20 group-hover:text-red-300">🚪</span> 
+                       <span className="group-hover:text-red-300">Cerrar Sesión</span>
+                   </button>
                </div>
+               {/* 🛑 FIN DE MENÚ REESTRUCTURADO SIMPLIFICADO */}
+
              </div>
            )}
         </div>
@@ -357,8 +382,9 @@ export default function Home() {
               {isAdmin && (
                 <>
                     <button onClick={() => { setIsSettingsModalOpen(true); setIsMobileMenuOpen(false); }} className="menu-item group py-4">
+                        {/* 🛑 RENOMBRE */}
                         <span className="menu-icon-box text-xl text-cyan-400">⚙️</span>
-                        <span className="text-base">Configuración</span>
+                        <span className="text-base">Panel Admin</span>
                     </button>
                     <button onClick={() => { setIsMembersModalOpen(true); setIsMobileMenuOpen(false); }} className="menu-item group py-4">
                         <span className="menu-icon-box text-xl text-yellow-400">👥</span>
@@ -366,6 +392,12 @@ export default function Home() {
                     </button>
                 </>
               )}
+
+              {/* 🛑 NUEVO: Ajustes Visuales (Global) */}
+              <button onClick={() => { setIsThemeSettingsOpen(true); setIsMobileMenuOpen(false); }} className="menu-item group py-4">
+                  <span className="menu-icon-box text-xl text-pink-400">🖌️</span>
+                  <span className="text-base">Ajustes Visuales</span>
+              </button>
 
               <button onClick={handleInvite} className="menu-item group py-4">
                 <span className="menu-icon-box text-xl text-blue-400">🔗</span>
@@ -385,7 +417,7 @@ export default function Home() {
               </button>
               
               <button onClick={handleLogout} className="menu-item group py-4 hover:!bg-red-900/20 hover:!border-red-900/30">
-                <span className="menu-icon-box text-xl text-red-400 group-hover:bg-red-500/20">🚪</span>
+                <span className="menu-icon-box text-xl text-red-400">🚪</span>
                 <span className="text-base group-hover:text-red-300">Cerrar Sesión</span>
               </button>
             </div>
@@ -548,6 +580,13 @@ export default function Home() {
         onUpdate={handleGroupUpdate}
         onDelete={handleGroupDelete}
       />
+      
+      {/* 🛑 PLACEHOLDER NUEVO MODAL DE TEMA */}
+      {/* <ThemeSettingsModal 
+        isOpen={isThemeSettingsOpen}
+        onClose={() => setIsThemeSettingsOpen(false)}
+      /> */}
+      
     </div>
   );
 }
