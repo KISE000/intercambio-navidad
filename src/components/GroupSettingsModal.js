@@ -17,22 +17,51 @@ export default function GroupSettingsModal({ isOpen, onClose, group, onUpdate })
 
   const handleUpdateName = async (e) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    const cleanName = name.trim();
+    
+    if (!cleanName) {
+        toast.error("El nombre no puede estar vacío");
+        return;
+    }
+
+    if (cleanName === group.name) {
+        onClose();
+        return;
+    }
     
     setLoading(true);
-    const { error } = await supabase
-      .from('groups')
-      .update({ name: name.trim() })
-      .eq('id', group.id);
 
-    setLoading(false);
+    try {
+        // 1. Intentamos actualizar en Supabase
+        // CRÍTICO: Usamos .select() para confirmar que la DB realmente hizo el cambio
+        const { data, error } = await supabase
+          .from('groups')
+          .update({ name: cleanName })
+          .eq('id', group.id)
+          .select(); // <--- Esto nos devuelve el registro actualizado
 
-    if (error) {
-      toast.error('Error al actualizar: ' + error.message);
-    } else {
-      toast.success('Nombre del grupo actualizado');
-      if (onUpdate) onUpdate({ ...group, name: name.trim() });
-      onClose();
+        if (error) throw error;
+
+        // 2. Verificación de Seguridad RLS
+        // Si data está vacío, significa que la query corrió pero ninguna fila cumplió la política de seguridad
+        if (!data || data.length === 0) {
+            throw new Error("No tienes permisos de administrador para editar este grupo.");
+        }
+
+        // 3. Éxito confirmado
+        const updatedGroup = data[0];
+        toast.success('Nombre del grupo actualizado');
+        
+        if (onUpdate) {
+            onUpdate(updatedGroup);
+        }
+        onClose();
+
+    } catch (error) {
+        console.error("Error updating group:", error);
+        toast.error(error.message || 'Error al actualizar el grupo');
+    } finally {
+        setLoading(false);
     }
   };
 
@@ -70,12 +99,13 @@ export default function GroupSettingsModal({ isOpen, onClose, group, onUpdate })
                             onChange={(e) => setName(e.target.value)}
                             className="flex-1 bg-[#0B0E14] border border-white/10 rounded-xl px-4 py-3 text-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all placeholder-slate-600"
                             placeholder="Ej: Familia Pérez"
+                            autoFocus
                         />
                     </div>
                 </div>
                 <button 
                     type="submit" 
-                    disabled={loading || name === group.name}
+                    disabled={loading || name === group.name || !name.trim()}
                     className="w-full py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-lg shadow-cyan-500/20 hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all uppercase tracking-wide"
                 >
                     {loading ? 'Guardando...' : 'Guardar Cambios'}
@@ -89,7 +119,7 @@ export default function GroupSettingsModal({ isOpen, onClose, group, onUpdate })
                     <h4 className="text-sm font-bold text-blue-100">Seguridad de Acceso</h4>
                 </div>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                    El código de invitación actual es <span className="font-mono text-white bg-white/10 px-1 rounded">{group.code}</span>. 
+                    El código de invitación actual es <span className="font-mono text-white bg-white/10 px-1 rounded select-all">{group.code}</span>. 
                     Compártelo solo con personas de confianza.
                 </p>
             </div>

@@ -12,7 +12,7 @@ import GroupSelector from '../components/GroupSelector';
 import Avatar from '../components/Avatar'; 
 import AvatarSelector from '../components/AvatarSelector'; 
 import GroupMembersModal from '../components/GroupMembersModal';
-import GroupSettingsModal from '../components/GroupSettingsModal'; // <--- IMPORTADO
+import GroupSettingsModal from '../components/GroupSettingsModal';
 
 export default function Home() {
   const [session, setSession] = useState(null);
@@ -31,7 +31,7 @@ export default function Home() {
   // Modals
   const [isAvatarSelectorOpen, setIsAvatarSelectorOpen] = useState(false);
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
-  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false); // <--- NUEVO ESTADO
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   
   const menuRef = useRef(null);
 
@@ -150,6 +150,14 @@ export default function Home() {
       setIsMenuOpen(false);
       setIsMobileMenuOpen(false);
     }).catch(() => toast.error("Error al copiar"));
+  };
+
+  // Manejo seguro de la actualización del grupo para no perder el Rol
+  const handleGroupUpdate = (updatedGroupData) => {
+    setSelectedGroup((prev) => ({
+        ...prev, 
+        ...updatedGroupData // Actualizamos nombre, etc, pero conservamos propiedades locales si las hubiera
+    }));
   };
 
   const filteredWishes = wishes.filter(w => {
@@ -502,7 +510,7 @@ export default function Home() {
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
         group={selectedGroup}
-        onUpdate={(updatedGroup) => setSelectedGroup(updatedGroup)}
+        onUpdate={handleGroupUpdate}
       />
     </div>
   );
