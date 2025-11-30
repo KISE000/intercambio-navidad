@@ -5,11 +5,11 @@
 :root {
   --bg-app: #0f172a;
   --primary: #8b5cf6;
+  --font-space: 'Inter', sans-serif; /* Asumiendo Inter o similar por defecto */
 }
 
 /* --- CORRECCIÓN MÓVIL (iOS Fix) --- */
 html {
-  /* Esto asegura que el "rebote" tenga el mismo color que tu app */
   background-color: #050505; 
   height: 100%;
 }
@@ -17,73 +17,87 @@ html {
 /* --- 1. CONFIGURACIÓN DE FUENTES Y BASE --- */
 body {
   @apply bg-[var(--bg-app)] text-slate-200 min-h-screen overflow-x-hidden font-sans;
-  
-  /* Fondo base más profundo */
   background-color: #050505; 
   
-  /* Gradiente Cyberpunk */
+  /* Gradiente Cyberpunk más sutil */
   background-image: 
     radial-gradient(circle at 50% 0%, #2e1065 0%, transparent 40%),
     radial-gradient(circle at 0% 100%, #1e1b4b 0%, transparent 30%);
     
-  /* Asegura renderizado de fuentes nítido */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Títulos con fuente Tech */
 h1, h2, h3, .font-display {
   font-family: var(--font-space), sans-serif;
   letter-spacing: -0.02em;
 }
 
-/* --- 2. PERSONALIZACIÓN DE UI (SCROLLBAR & SELECTION) --- */
-/* Scrollbar estilo Cyberpunk */
+/* --- 2. SCROLLBAR & SELECTION --- */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: #0B0E14; 
 }
 ::-webkit-scrollbar-thumb {
-  background: #4c1d95; 
+  background: #3b0764; 
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #7c3aed; 
 }
 
-/* Selección de texto Neón */
 ::selection {
-  background-color: #d946ef; /* Rosa Neón */
+  background-color: #d946ef;
   color: white;
 }
 
 @layer components {
   /* Input estandarizado */
   .cyber-input {
-    @apply w-full bg-[#0B0E14] border border-white/10 text-slate-200 rounded-xl px-4 py-3 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-all placeholder:text-slate-600;
+    @apply w-full bg-[#0B0E14]/80 backdrop-blur-sm border border-white/10 text-slate-200 rounded-xl px-4 py-3 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-all placeholder:text-slate-600 focus:shadow-[0_0_15px_rgba(168,85,247,0.2)];
   }
   
-  /* Botón Principal con más Glow */
+  /* Botón Principal */
   .btn-primary {
-    @apply w-full py-3.5 px-4 rounded-xl font-bold text-white shadow-[0_0_20px_rgba(139,92,246,0.3)] transition-all active:scale-95 bg-gradient-to-r from-purple-600 to-pink-600 hover:shadow-[0_0_30px_rgba(139,92,246,0.5)] hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply w-full py-3.5 px-4 rounded-xl font-bold text-white shadow-[0_0_20px_rgba(139,92,246,0.3)] transition-all active:scale-95 bg-gradient-to-r from-purple-600 to-pink-600 hover:shadow-[0_0_30px_rgba(139,92,246,0.5)] hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed border border-white/10;
   }
 
-  /* Etiquetas de formulario */
   .input-label {
-    @apply block text-xs font-bold text-slate-500 uppercase mb-2 tracking-widest ml-1;
+    @apply block text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-[0.2em] ml-1;
+  }
+
+  /* --- NUEVO: MENÚ CYBERPUNK --- */
+  .glass-menu {
+    @apply bg-[#1A1F2E]/95 backdrop-blur-xl border border-white/10 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)];
+  }
+
+  .menu-item {
+    @apply w-full text-left px-4 py-3 text-sm text-slate-300 hover:text-white rounded-xl flex items-center gap-3 transition-all duration-200 hover:bg-white/5 border border-transparent hover:border-white/5 active:scale-[0.98];
+  }
+  
+  .menu-icon-box {
+    @apply w-8 h-8 rounded-lg flex items-center justify-center bg-[#0B0E14] border border-white/5 text-lg shadow-sm group-hover:shadow-[0_0_10px_rgba(139,92,246,0.2)] transition-shadow;
   }
 }
 
-/* Utilidad para la nieve */
+/* Animaciones */
 .animate-fall {
   animation: fall 10s linear infinite;
 }
 
 @keyframes shimmer {
-  100% {
-    transform: translateX(100%);
-  }
+  100% { transform: translateX(100%); }
+}
+
+/* Animación de entrada suave para el menú */
+.animate-menu-in {
+  animation: menuIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes menuIn {
+  0% { opacity: 0; transform: scale(0.95) translateY(-10px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
 }

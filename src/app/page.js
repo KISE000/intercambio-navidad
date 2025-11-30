@@ -78,8 +78,8 @@ export default function Home() {
       .from('wishes')
       .select('*, profiles(username, avatar_style, avatar_seed)') 
       .eq('group_id', selectedGroup.id)
-      .order('position', { ascending: true }) // <--- NUEVO ORDENAMIENTO PRIMARIO
-      .order('created_at', { ascending: false }); // Fallback
+      .order('position', { ascending: true }) 
+      .order('created_at', { ascending: false });
 
     if (error) {
       console.error('Error fetching wishes:', error);
@@ -179,68 +179,90 @@ export default function Home() {
   const isAdmin = selectedGroup?.role === 'admin';
 
   return (
-    <div className="min-h-screen bg-[#0B0E14] text-slate-200 font-sans pb-20 relative">
+    <div className="min-h-screen bg-[#0B0E14] text-slate-200 font-sans pb-20 relative selection:bg-purple-500/30">
       <SnowBackground />
 
       {/* HEADER */}
-      <header className="bg-[#151923]/90 backdrop-blur-md border-b border-white/5 px-4 md:px-6 py-4 md:py-5 flex justify-between items-center sticky top-0 z-50">
-        <div className="flex items-center gap-3 md:gap-4">
-          <div className="text-2xl md:text-3xl">🎄</div>
+      <header className="bg-[#151923]/80 backdrop-blur-md border-b border-white/5 px-4 md:px-6 py-4 flex justify-between items-center sticky top-0 z-50 transition-all duration-300">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-xl shadow-[0_0_15px_rgba(124,58,237,0.3)]">🎄</div>
           <div>
-            <h1 className="text-lg md:text-xl font-bold text-white tracking-tight">iShop Navidad</h1>
-            <div className="flex items-center gap-2 text-xs md:text-sm text-slate-400 mt-0.5">
-              <span className="hidden sm:inline">Mis Grupos</span>
-              <span className="text-slate-600 hidden sm:inline">/</span>
-              <span className="text-purple-400 font-bold uppercase truncate max-w-[120px] sm:max-w-none">{selectedGroup.name}</span>
+            <h1 className="text-lg font-bold text-white tracking-tight leading-none">iShop Navidad</h1>
+            <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]"></span>
+              <span className="font-mono text-purple-400 uppercase tracking-wider">{selectedGroup.name}</span>
             </div>
           </div>
         </div>
 
         {/* Móvil Trigger */}
         <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden relative group outline-none">
-          <Avatar seed={getUserAvatarSeed()} style={getUserAvatarStyle()} size="md" className="group-active:scale-95 transition-transform" />
+          <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full opacity-0 group-active:opacity-50 transition duration-200 blur"></div>
+          <Avatar seed={getUserAvatarSeed()} style={getUserAvatarStyle()} size="md" className="relative" />
         </button>
 
         {/* Desktop Menu */}
         <div className="hidden md:block relative" ref={menuRef}>
-           <button onClick={() => setIsMenuOpen(!isMenuOpen)} className={`flex items-center gap-3 bg-[#0B0E14] border border-white/5 rounded-full pl-1 pr-6 py-1 hover:border-purple-500/50 transition-all ${isMenuOpen ? 'ring-2 ring-purple-500/20 border-purple-500/50' : ''}`}>
-             <Avatar seed={getUserAvatarSeed()} style={getUserAvatarStyle()} size="md" />
-             <span className="text-sm font-medium text-slate-300">{session.user.email.split('@')[0]}</span>
-             <span className={`text-xs text-slate-500 transition-transform duration-300 ${isMenuOpen ? 'rotate-180' : ''}`}>▼</span>
+           <button 
+             onClick={() => setIsMenuOpen(!isMenuOpen)} 
+             className={`flex items-center gap-3 bg-[#0B0E14]/50 hover:bg-[#1A1F2E] border border-white/10 rounded-full pl-1.5 pr-5 py-1.5 transition-all duration-300 group ${isMenuOpen ? 'ring-2 ring-purple-500/20 border-purple-500/40 bg-[#1A1F2E]' : ''}`}
+           >
+             <Avatar seed={getUserAvatarSeed()} style={getUserAvatarStyle()} size="sm" />
+             <div className="flex flex-col items-start leading-none">
+                <span className="text-xs font-bold text-slate-300 group-hover:text-white transition-colors">Mi Cuenta</span>
+                <span className="text-[10px] text-slate-500 font-mono truncate max-w-[100px]">{session.user.email.split('@')[0]}</span>
+             </div>
+             <span className={`text-[10px] text-slate-500 ml-2 transition-transform duration-300 ${isMenuOpen ? 'rotate-180 text-purple-400' : ''}`}>▼</span>
            </button>
 
            {isMenuOpen && (
-             <div className="absolute right-0 top-full mt-4 w-80 bg-[#1A1F2E] border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 origin-top-right z-50">
-               <div className="px-6 py-5 border-b border-white/5 bg-[#151923]/50">
-                 <p className="text-sm text-slate-500 font-bold uppercase tracking-wider mb-1">Mi Cuenta</p>
-                 <p className="text-lg text-white font-medium truncate">{session.user.email}</p>
+             <div className="absolute right-0 top-full mt-3 w-72 glass-menu rounded-2xl overflow-hidden animate-menu-in z-50 origin-top-right">
+               {/* User Info Card */}
+               <div className="p-5 border-b border-white/5 bg-gradient-to-b from-white/5 to-transparent">
+                 <div className="flex items-center gap-3 mb-3">
+                    <Avatar seed={getUserAvatarSeed()} style={getUserAvatarStyle()} size="md" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-purple-400 font-bold uppercase tracking-wider mb-0.5">Conectado como</p>
+                      <p className="text-sm text-white font-medium truncate" title={session.user.email}>{session.user.email}</p>
+                    </div>
+                 </div>
+                 {isAdmin && (
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-[10px] font-bold text-yellow-500 uppercase tracking-wide w-full justify-center">
+                        <span>★</span> Admin del Grupo
+                    </div>
+                 )}
                </div>
-               <div className="p-3 space-y-2">
+
+               {/* Menu Actions */}
+               <div className="p-2 space-y-1">
                  
                  {isAdmin && (
-                   <button 
-                      onClick={() => { setIsMembersModalOpen(true); setIsMenuOpen(false); }} 
-                      className="w-full text-left px-4 py-3 text-base text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/10 rounded-xl flex items-center gap-3 transition-colors group"
-                   >
-                      <span className="text-xl group-hover:scale-110 transition-transform">👥</span> 
-                      Gestión de Miembros
+                   <button onClick={() => { setIsMembersModalOpen(true); setIsMenuOpen(false); }} className="menu-item group">
+                      <span className="menu-icon-box text-yellow-400 group-hover:bg-yellow-500/20 group-hover:text-yellow-300">👥</span> 
+                      <span>Gestión de Miembros</span>
                    </button>
                  )}
 
-                 <button onClick={handleInvite} className="w-full text-left px-4 py-3 text-base text-slate-300 hover:text-white hover:bg-white/5 rounded-xl flex items-center gap-3 transition-colors group">
-                    <span className="text-xl group-hover:scale-110 transition-transform">🔗</span> Invitar Amigos
+                 <button onClick={handleInvite} className="menu-item group">
+                    <span className="menu-icon-box text-blue-400 group-hover:bg-blue-500/20 group-hover:text-blue-300">🔗</span> 
+                    <span>Invitar Amigos</span>
                  </button>
 
-                 <button onClick={() => { setIsAvatarSelectorOpen(true); setIsMenuOpen(false); }} className="w-full text-left px-4 py-3 text-base text-slate-300 hover:text-white hover:bg-white/5 rounded-xl flex items-center gap-3 transition-colors group">
-                    <span className="text-xl group-hover:scale-110 transition-transform">🎅</span> Cambiar Avatar
+                 <button onClick={() => { setIsAvatarSelectorOpen(true); setIsMenuOpen(false); }} className="menu-item group">
+                    <span className="menu-icon-box text-pink-400 group-hover:bg-pink-500/20 group-hover:text-pink-300">🎨</span> 
+                    <span>Personalizar Avatar</span>
                  </button>
                  
-                 <button onClick={() => { setSelectedGroup(null); setIsMenuOpen(false); }} className="w-full text-left px-4 py-3 text-base text-slate-300 hover:text-white hover:bg-white/5 rounded-xl flex items-center gap-3 transition-colors group">
-                   <span className="text-xl group-hover:scale-110 transition-transform">🔄</span> Cambiar de Grupo
+                 <div className="h-px bg-white/5 my-1 mx-2"></div>
+
+                 <button onClick={() => { setSelectedGroup(null); setIsMenuOpen(false); }} className="menu-item group">
+                   <span className="menu-icon-box text-slate-400 group-hover:bg-slate-500/20 group-hover:text-slate-200">🔄</span> 
+                   <span>Cambiar de Grupo</span>
                  </button>
                  
-                 <button onClick={handleLogout} className="w-full text-left px-4 py-3 text-base text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl flex items-center gap-3 transition-colors group">
-                   <span className="text-xl group-hover:scale-110 transition-transform">🚪</span> Cerrar Sesión
+                 <button onClick={handleLogout} className="menu-item group hover:!bg-red-500/10 hover:!border-red-500/20">
+                   <span className="menu-icon-box text-red-400 group-hover:bg-red-500/20 group-hover:text-red-300">🚪</span> 
+                   <span className="group-hover:text-red-300">Cerrar Sesión</span>
                  </button>
                </div>
              </div>
@@ -251,58 +273,77 @@ export default function Home() {
       {/* MENÚ MÓVIL */}
       {isMobileMenuOpen && (
         <>
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] animate-in fade-in duration-200" onClick={() => setIsMobileMenuOpen(false)} />
-          <div className="fixed top-0 right-0 bottom-0 w-80 max-w-[85vw] bg-[#151923] border-l border-white/10 z-[70] shadow-2xl animate-in slide-in-from-right duration-300">
-             <div className="p-6 border-b border-white/5 bg-[#0B0E14]/50 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-white">Menú</h2>
-              <button onClick={() => setIsMobileMenuOpen(false)} className="w-10 h-10 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors">
-                <svg className="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] animate-in fade-in duration-200" onClick={() => setIsMobileMenuOpen(false)} />
+          <div className="fixed top-0 right-0 bottom-0 w-[85vw] max-w-sm bg-[#151923] border-l border-white/10 z-[70] shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col">
+             
+             {/* Header Móvil */}
+             <div className="p-6 border-b border-white/5 bg-[#0B0E14]/50 flex justify-between items-center relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 to-transparent pointer-events-none"></div>
+                <h2 className="text-xl font-bold text-white relative z-10 flex items-center gap-2">
+                    <span className="text-2xl">🎄</span> Menú
+                </h2>
+                <button onClick={() => setIsMobileMenuOpen(false)} className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors relative z-10 border border-white/5">
+                    <svg className="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
             </div>
+
+            {/* User Card Móvil */}
             <div className="p-6 border-b border-white/5">
-              <div className="flex items-center gap-4 mb-4">
-                <Avatar seed={getUserAvatarSeed()} style={getUserAvatarStyle()} size="lg" />
+              <div className="flex items-center gap-4 mb-6">
+                <div className="relative">
+                     <div className="absolute -inset-2 bg-purple-500/20 rounded-full blur-md"></div>
+                     <Avatar seed={getUserAvatarSeed()} style={getUserAvatarStyle()} size="lg" className="relative" />
+                </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-slate-500 font-bold uppercase tracking-wider mb-1">Mi Cuenta</p>
+                  <p className="text-[10px] text-purple-400 font-bold uppercase tracking-widest mb-1">Cuenta Activa</p>
                   <p className="text-base text-white font-medium truncate">{session.user.email}</p>
                 </div>
               </div>
-              <div className="bg-[#0B0E14]/50 rounded-xl p-3 border border-white/5">
-                <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Grupo Actual</p>
-                <p className="text-sm text-purple-400 font-bold">{selectedGroup.name}</p>
-                {isAdmin && <span className="text-[10px] text-yellow-500 font-bold bg-yellow-500/10 px-2 py-0.5 rounded border border-yellow-500/20 mt-1 inline-block">ADMINISTRADOR</span>}
+              
+              <div className="bg-[#0B0E14] rounded-xl p-4 border border-white/5 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-2 opacity-10 text-5xl transform rotate-12 group-hover:rotate-0 transition-transform">🎁</div>
+                <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Grupo Actual</p>
+                <p className="text-lg text-white font-bold tracking-tight">{selectedGroup.name}</p>
+                {isAdmin && <span className="text-[10px] text-yellow-500 font-bold bg-yellow-500/10 px-2 py-1 rounded border border-yellow-500/20 mt-2 inline-block">ADMINISTRADOR</span>}
               </div>
             </div>
-            <div className="p-4 space-y-2">
+
+            {/* Actions Móvil */}
+            <div className="p-4 space-y-2 overflow-y-auto flex-1">
               
               {isAdmin && (
-                <button 
-                    onClick={() => { setIsMembersModalOpen(true); setIsMobileMenuOpen(false); }} 
-                    className="w-full text-left px-4 py-4 text-base text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/10 rounded-xl flex items-center gap-3 transition-colors group"
-                >
-                  <span className="text-2xl group-hover:scale-110 transition-transform">👥</span>
-                  <span>Gestión de Miembros</span>
+                <button onClick={() => { setIsMembersModalOpen(true); setIsMobileMenuOpen(false); }} className="menu-item group py-4">
+                  <span className="menu-icon-box text-xl text-yellow-400">👥</span>
+                  <span className="text-base">Gestión de Miembros</span>
                 </button>
               )}
 
-              <button onClick={handleInvite} className="w-full text-left px-4 py-4 text-base text-slate-300 hover:text-white hover:bg-white/5 rounded-xl flex items-center gap-3 transition-colors group">
-                <span className="text-2xl group-hover:scale-110 transition-transform">🔗</span><span>Invitar Amigos</span>
+              <button onClick={handleInvite} className="menu-item group py-4">
+                <span className="menu-icon-box text-xl text-blue-400">🔗</span>
+                <span className="text-base">Invitar Amigos</span>
               </button>
 
-              <button onClick={() => { setIsAvatarSelectorOpen(true); setIsMobileMenuOpen(false); }} className="w-full text-left px-4 py-4 text-base text-slate-300 hover:text-white hover:bg-white/5 rounded-xl flex items-center gap-3 transition-colors group">
-                <span className="text-2xl group-hover:scale-110 transition-transform">🎅</span><span>Personalizar Avatar</span>
+              <button onClick={() => { setIsAvatarSelectorOpen(true); setIsMobileMenuOpen(false); }} className="menu-item group py-4">
+                <span className="menu-icon-box text-xl text-pink-400">🎨</span>
+                <span className="text-base">Personalizar Avatar</span>
               </button>
 
-              <button onClick={() => { setSelectedGroup(null); setIsMobileMenuOpen(false); }} className="w-full text-left px-4 py-4 text-base text-slate-300 hover:text-white hover:bg-white/5 rounded-xl flex items-center gap-3 transition-colors group">
-                <span className="text-2xl group-hover:scale-110 transition-transform">🔄</span><span>Cambiar de Grupo</span>
+              <div className="h-px bg-white/5 my-2"></div>
+
+              <button onClick={() => { setSelectedGroup(null); setIsMobileMenuOpen(false); }} className="menu-item group py-4">
+                <span className="menu-icon-box text-xl text-slate-400">🔄</span>
+                <span className="text-base">Cambiar de Grupo</span>
               </button>
               
-              <button onClick={handleLogout} className="w-full text-left px-4 py-4 text-base text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl flex items-center gap-3 transition-colors group">
-                <span className="text-2xl group-hover:scale-110 transition-transform">🚪</span><span>Cerrar Sesión</span>
+              <button onClick={handleLogout} className="menu-item group py-4 hover:!bg-red-900/20 hover:!border-red-900/30">
+                <span className="menu-icon-box text-xl text-red-400 group-hover:bg-red-500/20">🚪</span>
+                <span className="text-base group-hover:text-red-300">Cerrar Sesión</span>
               </button>
             </div>
-            <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-white/5 bg-[#0B0E14]/50">
-              <p className="text-xs text-slate-600 text-center">iShop Navidad v1.0</p>
+
+            {/* Footer Móvil */}
+            <div className="p-6 border-t border-white/5 bg-[#0B0E14]/30">
+              <p className="text-[10px] text-slate-600 text-center font-mono uppercase tracking-widest">iShop Navidad v1.2 • Cyberpunk Ed.</p>
             </div>
           </div>
         </>
