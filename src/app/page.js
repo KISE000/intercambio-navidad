@@ -9,7 +9,7 @@ import WishList from '../components/WishList';
 import WishListSkeleton from '../components/WishListSkeleton';
 import GroupSelector from '../components/GroupSelector';
 import Avatar from '../components/Avatar'; 
-import AvatarSelector from '../components/AvatarSelector'; // <--- IMPORTACIÓN DEL SELECTOR
+import AvatarSelector from '../components/AvatarSelector'; 
 
 export default function Home() {
   const [session, setSession] = useState(null);
@@ -27,12 +27,11 @@ export default function Home() {
   // --- ESTADOS PARA MENÚS ---
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isAvatarSelectorOpen, setIsAvatarSelectorOpen] = useState(false); // <--- ESTADO DEL MODAL AVATAR
+  const [isAvatarSelectorOpen, setIsAvatarSelectorOpen] = useState(false);
   
   const menuRef = useRef(null);
 
-  // --- HELPERS PARA AVATAR ---
-  // Obtienen la configuración guardada o usan valores por defecto (Robot + Email)
+  // --- HELPERS PARA AVATAR (Local User) ---
   const getUserAvatarStyle = () => session?.user?.user_metadata?.avatar_style || 'robot';
   const getUserAvatarSeed = () => session?.user?.user_metadata?.avatar_seed || session?.user?.email;
 
@@ -69,20 +68,26 @@ export default function Home() {
     </div>
   );
 
-  // --- 2. Lógica Supabase ---
+  // --- 2. Lógica Supabase (CORREGIDA) ---
   const fetchWishes = useCallback(async () => {
     if (!selectedGroup) return;
     
     setLoadingWishes(true);
     
+    // CORRECCIÓN: Eliminado 'full_name' que causaba el error si no existe en la tabla.
+    // Solo pedimos las columnas que sabemos que existen: username, avatar_style, avatar_seed.
     const { data, error } = await supabase
       .from('wishes')
-      .select('*, profiles(username)')
+      .select('*, profiles(username, avatar_style, avatar_seed)') 
       .eq('group_id', selectedGroup.id)
       .order('created_at', { ascending: false });
 
-    if (error) console.error('Error:', error);
-    else setWishes(data || []);
+    if (error) {
+      console.error('Error fetching wishes:', error);
+      // No seteamos data vacía aquí para poder ver el error en consola si persiste
+    } else {
+      setWishes(data || []);
+    }
     
     setTimeout(() => setLoadingWishes(false), 500); 
     
@@ -92,21 +97,16 @@ export default function Home() {
   useEffect(() => {
     let mounted = true;
     
-    // Check inicial de sesión
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (mounted) { setSession(session); setLoading(false); }
     });
 
-    // Escuchar cambios de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      
-      // Si es recuperación de contraseña, redirigir
       if (event === 'PASSWORD_RECOVERY') {
         setSession(session);
         router.push('/update-password');
         return; 
       }
-
       setSession(session);
       if (!session) { setSelectedGroup(null); setWishes([]); }
       setLoading(false);
@@ -200,7 +200,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Móvil Trigger (ACTUALIZADO CON AVATAR PERSONALIZADO) */}
+        {/* Móvil Trigger */}
         <button 
           onClick={() => setIsMobileMenuOpen(true)}
           className="md:hidden relative group outline-none"
@@ -213,7 +213,7 @@ export default function Home() {
           />
         </button>
 
-        {/* Desktop Menu (ACTUALIZADO CON AVATAR PERSONALIZADO) */}
+        {/* Desktop Menu */}
         <div className="hidden md:block relative" ref={menuRef}>
            <button 
              onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -235,7 +235,6 @@ export default function Home() {
                  <p className="text-lg text-white font-medium truncate">{session.user.email}</p>
                </div>
                <div className="p-3 space-y-2">
-                 {/* BOTÓN DE CAMBIAR AVATAR */}
                  <button 
                     onClick={() => { setIsAvatarSelectorOpen(true); setIsMenuOpen(false); }} 
                     className="w-full text-left px-4 py-3 text-base text-slate-300 hover:text-white hover:bg-white/5 rounded-xl flex items-center gap-3 transition-colors group"
@@ -269,7 +268,6 @@ export default function Home() {
             </div>
             <div className="p-6 border-b border-white/5">
               <div className="flex items-center gap-4 mb-4">
-                {/* AVATAR MENU MOVIL PERSONALIZADO */}
                 <Avatar 
                     seed={getUserAvatarSeed()} 
                     style={getUserAvatarStyle()}
@@ -287,7 +285,6 @@ export default function Home() {
               </div>
             </div>
             <div className="p-4 space-y-2">
-              {/* BOTÓN MÓVIL CAMBIAR AVATAR */}
               <button 
                   onClick={() => { setIsAvatarSelectorOpen(true); setIsMobileMenuOpen(false); }} 
                   className="w-full text-left px-4 py-4 text-base text-slate-300 hover:text-white hover:bg-white/5 rounded-xl flex items-center gap-3 transition-colors group"
@@ -432,6 +429,8 @@ export default function Home() {
         onUpdate={(updatedUser) => {
           // Actualización optimista de la sesión para ver el cambio inmediato
           setSession({ ...session, user: updatedUser });
+          // Importante: recargar lista para ver tu propio avatar cambiado en las tarjetas
+          fetchWishes();
         }}
       />
     </div>

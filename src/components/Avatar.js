@@ -1,6 +1,7 @@
-import Image from 'next/image';
+// Usamos etiqueta nativa <img> para evitar problemas con Next/Image
+import React from 'react';
 
-export default function Avatar({ seed, style = "robot", alt = "Avatar", size = "md", className = "" }) {
+export default function Avatar({ seed, style = "notionists", params = "", alt = "Avatar", size = "md", className = "" }) {
   // Tamaños predefinidos
   const sizeMap = {
     sm: 32,
@@ -12,38 +13,50 @@ export default function Avatar({ seed, style = "robot", alt = "Avatar", size = "
 
   const pxSize = sizeMap[size] || sizeMap.md;
   
-  // Mapeo de estilos amigables a colecciones de DiceBear
-  // 'robot' -> bottts-neutral (Cyberpunk default)
-  // 'elf' -> adventurer (Estilo RPG/Fantasía para Santa/Elfos)
-  // 'monster' -> fun-emoji (Para el Grinch)
-  // 'pixel' -> pixel-art (Retro gaming)
+  // LÓGICA DE DESEMPAQUETADO:
+  let finalSeed = seed || 'invitado';
+  let finalParams = params;
+
+  if (finalSeed && finalSeed.includes('|')) {
+    const parts = finalSeed.split('|');
+    finalSeed = parts[0];
+    finalParams = parts[1]; 
+  }
+
+  // --- MAPA DE ESTILOS ACTUALIZADO ---
+  // Si el estilo no está en la lista, usamos el valor directo (fallback)
+  let collection = style;
   const styleMap = {
-    'robot': 'bottts-neutral',     
-    'elf': 'adventurer',           
-    'monster': 'fun-emoji',        
-    'pixel': 'pixel-art',          
+    'robot': 'bottts-neutral',
+    'human': 'avataaars',
+    'monster': 'fun-emoji',
+    'pixel': 'pixel-art',
+    'adventurer': 'adventurer',
+    'notionists': 'notionists', // Nuevo estilo limpio
+    'open-peeps': 'open-peeps',  // Nuevo estilo caricatura
+    'bottts': 'bottts'          // Robots clásicos (para Grinch)
   };
+  
+  if (styleMap[style]) collection = styleMap[style];
 
-  // Determinamos la colección final. Si el estilo no está en el mapa, usamos el default.
-  const collection = styleMap[style] || 'bottts-neutral';
-
-  // URL Determinista
-  const avatarUrl = `https://api.dicebear.com/9.x/${collection}/svg?seed=${encodeURIComponent(seed || 'invitado')}`;
+  // Construcción URL
+  const queryParams = finalParams ? `&${finalParams}` : '';
+  const avatarUrl = `https://api.dicebear.com/9.x/${collection}/svg?seed=${encodeURIComponent(finalSeed)}${queryParams}`;
 
   return (
     <div 
-      className={`relative overflow-hidden rounded-full bg-black/50 border border-cyan-500/30 shadow-[0_0_10px_rgba(6,182,212,0.2)] shrink-0 ${className}`}
+      className={`relative overflow-hidden rounded-full bg-slate-800 border border-white/10 shadow-md shrink-0 ${className}`}
       style={{ width: pxSize, height: pxSize }}
     >
-      <Image
+      {/* Etiqueta IMG nativa para máxima compatibilidad */}
+      <img
         src={avatarUrl}
         alt={alt}
         width={pxSize}
         height={pxSize}
-        className="object-cover w-full h-full hover:scale-110 transition-transform duration-300"
+        className="object-cover w-full h-full"
+        loading="lazy"
       />
-      {/* Efecto de brillo (Glassmorphism) */}
-      <div className="absolute inset-0 rounded-full ring-1 ring-inset ring-white/10 pointer-events-none"></div>
     </div>
   );
 }

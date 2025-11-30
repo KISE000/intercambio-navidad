@@ -1,5 +1,5 @@
 import { useState, Fragment, useEffect } from 'react';
-import { createPortal } from 'react-dom'; // <--- IMPORTANTE
+import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabaseClient';
 import { toast } from 'sonner';
 import Avatar from './Avatar';
@@ -16,7 +16,7 @@ export default function WishList({ wishes, currentUser, onDelete }) {
   // --- ESTADO PARA ACORDEÓN ---
   const [expandedGroups, setExpandedGroups] = useState({});
 
-  // --- ESTADO PARA PORTAL (Evita error de hidratación) ---
+  // --- ESTADO PARA PORTAL ---
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -34,17 +34,25 @@ export default function WishList({ wishes, currentUser, onDelete }) {
     }
   }, [editingWish]);
 
-  // --- LÓGICA DE AGRUPACIÓN ---
+  // --- LÓGICA DE AGRUPACIÓN (Ahora extrae avatares) ---
   const groupWishesByUser = (wishes) => {
     return wishes.reduce((acc, wish) => {
       const ownerId = wish.user_id;
-      const ownerName = wish.profiles?.full_name || wish.profiles?.username || 'Anónimo';
+      // Extraemos perfil completo
+      const profile = wish.profiles || {};
+      const ownerName = profile.full_name || profile.username || 'Anónimo';
       
+      // Extraemos configuración de avatar (con defaults)
+      const avatarStyle = profile.avatar_style || 'robot';
+      const avatarSeed = profile.avatar_seed || ownerId;
+
       if (!acc[ownerId]) {
         acc[ownerId] = {
             id: ownerId, 
             name: ownerName,
-            initial: ownerName.charAt(0).toUpperCase(),
+            // Pasamos los datos del avatar al grupo
+            avatarStyle,
+            avatarSeed,
             wishes: [],
         };
       }
@@ -110,7 +118,7 @@ export default function WishList({ wishes, currentUser, onDelete }) {
 
   return (
     <>
-      {/* --- MODAL EDICIÓN (USANDO PORTAL) --- */}
+      {/* --- MODAL EDICIÓN --- */}
       {mounted && editingWish && createPortal(
         <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setEditingWish(null)}>
           <div className="bg-[#0f111a] border border-white/10 w-full max-w-md rounded-3xl p-8 shadow-2xl relative" onClick={e => e.stopPropagation()}>
@@ -179,13 +187,12 @@ export default function WishList({ wishes, currentUser, onDelete }) {
         document.body
       )}
 
-      {/* --- LIGHTBOX MODAL (USANDO PORTAL + FIX) --- */}
+      {/* --- LIGHTBOX MODAL --- */}
       {mounted && selectedImage && createPortal(
         <div 
           className="fixed inset-0 bg-black/95 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200 backdrop-blur-md"
           onClick={() => setSelectedImage(null)}
         >
-          {/* BOTÓN FIXED: Ahora sí, relativo a la ventana gracias al Portal */}
           <button 
             className="fixed top-6 right-6 z-[10000] bg-slate-900 text-white w-12 h-12 rounded-full flex items-center justify-center border border-white/20 hover:bg-red-600 transition-colors shadow-2xl active:scale-95"
             onClick={(e) => {
@@ -226,7 +233,12 @@ export default function WishList({ wishes, currentUser, onDelete }) {
                     }`}
                   >
                     <div className="flex items-center gap-4">
-                        <Avatar seed={userGroup.id} size="lg" />
+                        {/* AVATAR DINÁMICO */}
+                        <Avatar 
+                          seed={userGroup.avatarSeed} 
+                          style={userGroup.avatarStyle} 
+                          size="lg" 
+                        />
                         
                         <div className="text-left">
                             <h3 className={`text-lg font-bold transition-colors tracking-tight ${isOpen ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>
@@ -292,19 +304,14 @@ export default function WishList({ wishes, currentUser, onDelete }) {
                     )}
 
                     <div className="bg-[#151923]/90 backdrop-blur-sm p-6 flex flex-col flex-1 border-t border-white/5">
-                      
-                      {/* TITULO */}
                       <h3 className="font-bold text-lg text-white leading-tight mb-3 break-words">
                           {wish.title}
                       </h3>
-
-                      {/* DETALLES */}
                       {wish.details && (
                         <p className="text-slate-400 text-sm leading-relaxed mb-4 flex-1 whitespace-pre-wrap break-words">
                           {wish.details}
                         </p>
                       )}
-
                       <div className="mt-auto pt-4 border-t border-white/10 flex items-center justify-between gap-3">
                         <div className="flex-1">
                           {wish.link && (
@@ -318,7 +325,6 @@ export default function WishList({ wishes, currentUser, onDelete }) {
                             </a>
                           )}
                         </div>
-                        
                         {isMine && (
                           <div className="flex gap-2">
                             <button 
