@@ -7,19 +7,33 @@
   --primary: #8b5cf6;
 }
 
-/* --- 1. CONFIGURACIÓN DE FUENTES --- */
+/* --- CORRECCIÓN MÓVIL (iOS Fix) --- */
+html {
+  /* Esto asegura que el "rebote" tenga el mismo color que tu app */
+  background-color: #050505; 
+  height: 100%;
+}
+
+/* --- 1. CONFIGURACIÓN DE FUENTES Y BASE --- */
 body {
   @apply bg-[var(--bg-app)] text-slate-200 min-h-screen overflow-x-hidden font-sans;
+  
   /* Fondo base más profundo */
   background-color: #050505; 
+  
+  /* Gradiente Cyberpunk */
   background-image: 
     radial-gradient(circle at 50% 0%, #2e1065 0%, transparent 40%),
     radial-gradient(circle at 0% 100%, #1e1b4b 0%, transparent 30%);
+    
+  /* Asegura renderizado de fuentes nítido */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Títulos con fuente Tech */
 h1, h2, h3, .font-display {
-  font-family: var(--font-space), sans-serif; /* Usa Space Grotesk */
+  font-family: var(--font-space), sans-serif;
   letter-spacing: -0.02em;
 }
 
