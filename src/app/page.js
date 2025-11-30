@@ -12,6 +12,7 @@ import GroupSelector from '../components/GroupSelector';
 import Avatar from '../components/Avatar'; 
 import AvatarSelector from '../components/AvatarSelector'; 
 import GroupMembersModal from '../components/GroupMembersModal';
+import GroupSettingsModal from '../components/GroupSettingsModal'; // <--- IMPORTADO
 
 export default function Home() {
   const [session, setSession] = useState(null);
@@ -30,6 +31,7 @@ export default function Home() {
   // Modals
   const [isAvatarSelectorOpen, setIsAvatarSelectorOpen] = useState(false);
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false); // <--- NUEVO ESTADO
   
   const menuRef = useRef(null);
 
@@ -187,10 +189,13 @@ export default function Home() {
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-xl shadow-[0_0_15px_rgba(124,58,237,0.3)]">🎄</div>
           <div>
-            <h1 className="text-lg font-bold text-white tracking-tight leading-none">iShop Navidad</h1>
-            <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]"></span>
-              <span className="font-mono text-purple-400 uppercase tracking-wider">{selectedGroup.name}</span>
+            <h1 className="text-lg font-bold text-white tracking-tight leading-none">{selectedGroup.name}</h1>
+            <div className="flex items-center gap-2 text-xs text-slate-400 mt-1 cursor-pointer group/code" onClick={handleInvite} title="Click para copiar invitación">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)] group-hover/code:animate-pulse"></span>
+              <span className="font-mono text-slate-500">ID:</span>
+              <span className="font-mono text-purple-400 uppercase tracking-wider group-hover/code:text-purple-300 transition-colors">
+                {selectedGroup.code}
+              </span>
             </div>
           </div>
         </div>
@@ -237,10 +242,16 @@ export default function Home() {
                <div className="p-2 space-y-1">
                  
                  {isAdmin && (
-                   <button onClick={() => { setIsMembersModalOpen(true); setIsMenuOpen(false); }} className="menu-item group">
-                      <span className="menu-icon-box text-yellow-400 group-hover:bg-yellow-500/20 group-hover:text-yellow-300">👥</span> 
-                      <span>Gestión de Miembros</span>
-                   </button>
+                   <>
+                    <button onClick={() => { setIsSettingsModalOpen(true); setIsMenuOpen(false); }} className="menu-item group">
+                        <span className="menu-icon-box text-cyan-400 group-hover:bg-cyan-500/20 group-hover:text-cyan-300">⚙️</span> 
+                        <span>Configuración</span>
+                    </button>
+                    <button onClick={() => { setIsMembersModalOpen(true); setIsMenuOpen(false); }} className="menu-item group">
+                        <span className="menu-icon-box text-yellow-400 group-hover:bg-yellow-500/20 group-hover:text-yellow-300">👥</span> 
+                        <span>Gestión de Miembros</span>
+                    </button>
+                   </>
                  )}
 
                  <button onClick={handleInvite} className="menu-item group">
@@ -312,10 +323,16 @@ export default function Home() {
             <div className="p-4 space-y-2 overflow-y-auto flex-1">
               
               {isAdmin && (
-                <button onClick={() => { setIsMembersModalOpen(true); setIsMobileMenuOpen(false); }} className="menu-item group py-4">
-                  <span className="menu-icon-box text-xl text-yellow-400">👥</span>
-                  <span className="text-base">Gestión de Miembros</span>
-                </button>
+                <>
+                    <button onClick={() => { setIsSettingsModalOpen(true); setIsMobileMenuOpen(false); }} className="menu-item group py-4">
+                        <span className="menu-icon-box text-xl text-cyan-400">⚙️</span>
+                        <span className="text-base">Configuración</span>
+                    </button>
+                    <button onClick={() => { setIsMembersModalOpen(true); setIsMobileMenuOpen(false); }} className="menu-item group py-4">
+                        <span className="menu-icon-box text-xl text-yellow-400">👥</span>
+                        <span className="text-base">Gestión de Miembros</span>
+                    </button>
+                </>
               )}
 
               <button onClick={handleInvite} className="menu-item group py-4">
@@ -479,6 +496,13 @@ export default function Home() {
         onClose={() => setIsMembersModalOpen(false)}
         groupId={selectedGroup?.id}
         currentUserSession={session}
+      />
+
+      <GroupSettingsModal 
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        group={selectedGroup}
+        onUpdate={(updatedGroup) => setSelectedGroup(updatedGroup)}
       />
     </div>
   );
