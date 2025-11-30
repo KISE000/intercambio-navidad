@@ -17,15 +17,12 @@ export default function GroupMembersModal({ isOpen, onClose, groupId, currentUse
   const fetchMembers = async () => {
     setLoading(true);
     try {
-      // 🛑 OPTIMIZACIÓN: Se usa un solo SELECT con join para obtener miembros Y perfiles (JOIN implícito)
+      // 🛑 SOLUCIÓN CRÍTICA: Llamar a la función RPC para BYPASS RLS
       const { data: membersData, error: membersError } = await supabase
-        .from('group_members')
-        // Se seleccionan datos de group_members y todos los datos de profiles relacionados
-        .select('user_id, role, profiles(id, username, avatar_style, avatar_seed)')
-        .eq('group_id', groupId);
-
+        .rpc('get_group_members_bypass', { group_id_input: groupId });
+        
       if (membersError) throw membersError;
-
+      
       if (!membersData || membersData.length === 0) {
         setMembers([]);
         return;
@@ -34,23 +31,35 @@ export default function GroupMembersModal({ isOpen, onClose, groupId, currentUse
       const myId = currentUserSession?.user?.id;
       const myMembership = membersData.find(m => m.user_id === myId);
       
-      // Detección de Admin
+      // Detección de Admin (basado en la respuesta del RPC)
       if (myMembership && myMembership.role === 'admin') {
         setAmIAdmin(true);
       } else {
         setAmIAdmin(false);
       }
 
-      // 🛑 Nota: Ya no se necesita el paso 2 (fetch profiles) ni el paso 3 (join manual)
+      // 🛑 Mapeo de la respuesta plana de la función RPC a la estructura de perfil anidada
+      const mappedMembers = membersData.map(m => ({
+          user_id: m.user_id,
+          role: m.role,
+          // La estructura se ajusta para que el resto del código funcione:
+          profiles: {
+              id: m.user_id, // Usamos user_id como id de perfil
+              username: m.username,
+              avatar_style: m.avatar_style,
+              avatar_seed: m.avatar_seed
+          }
+      }));
 
       // Ordenar: Admins primero
-      membersData.sort((a, b) => (a.role === 'admin' ? -1 : 1));
+      mappedMembers.sort((a, b) => (a.role === 'admin' ? -1 : 1));
 
-      setMembers(membersData);
+      setMembers(mappedMembers);
 
     } catch (error) {
-      console.error("Error cargando miembros:", error);
-      toast.error("Error al cargar la lista.");
+      console.error("Error crítico cargando miembros (RPC Falló):", error);
+      // El RPC lanzará el mensaje de error de 'Permiso denegado' si no eres el creador.
+      toast.error(error.message || "Error al cargar la lista.");
     } finally {
       setLoading(false);
     }
@@ -86,7 +95,7 @@ export default function GroupMembersModal({ isOpen, onClose, groupId, currentUse
         <div className="flex justify-between items-center mb-6 pb-4 border-b border-white/5">
           <div>
             <h3 className="text-xl font-bold text-white flex items-center gap-2">
-              👥 Miembros del Grupo
+              👥 Gestión de Miembros
             </h3>
             <p className="text-xs text-slate-400 uppercase tracking-wider">
               {members.length} Integrantes Totales
