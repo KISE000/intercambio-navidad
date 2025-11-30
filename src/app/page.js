@@ -152,12 +152,20 @@ export default function Home() {
     }).catch(() => toast.error("Error al copiar"));
   };
 
-  // Manejo seguro de la actualización del grupo para no perder el Rol
+  // Manejo de actualización de grupo (Broadcast, Nombre, Código)
   const handleGroupUpdate = (updatedGroupData) => {
     setSelectedGroup((prev) => ({
         ...prev, 
-        ...updatedGroupData // Actualizamos nombre, etc, pero conservamos propiedades locales si las hubiera
+        ...updatedGroupData
     }));
+  };
+
+  // Manejo de eliminación de grupo
+  const handleGroupDelete = () => {
+    setSelectedGroup(null);
+    setWishes([]);
+    setIsSettingsModalOpen(false);
+    // GroupSelector se mostrará automáticamente porque selectedGroup es null
   };
 
   const filteredWishes = wishes.filter(w => {
@@ -376,6 +384,17 @@ export default function Home() {
 
       {/* Hero y Stats */}
       <div className="relative z-10 max-w-4xl mx-auto px-4 mt-8 mb-12">
+         {/* --- BROADCAST ALERT --- */}
+         {selectedGroup.announcement && (
+            <div className="mb-8 p-4 bg-cyan-900/10 border border-cyan-500/30 rounded-xl flex gap-4 animate-in slide-in-from-top-4 duration-500 shadow-[0_0_20px_rgba(34,211,238,0.1)]">
+                <div className="text-2xl animate-pulse">📢</div>
+                <div>
+                    <h3 className="text-xs font-bold text-cyan-400 uppercase tracking-widest mb-1">Mensaje del Admin</h3>
+                    <p className="text-cyan-100 text-sm leading-relaxed whitespace-pre-wrap">{selectedGroup.announcement}</p>
+                </div>
+            </div>
+         )}
+         
          <div className="relative group">
           <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 rounded-3xl opacity-20 group-hover:opacity-30 transition duration-500 blur-xl"></div>
           <div className="relative bg-gradient-to-br from-[#151923] to-[#0B0E14] rounded-3xl p-8 md:p-10 border border-white/10 shadow-2xl overflow-hidden">
@@ -511,6 +530,7 @@ export default function Home() {
         onClose={() => setIsSettingsModalOpen(false)}
         group={selectedGroup}
         onUpdate={handleGroupUpdate}
+        onDelete={handleGroupDelete}
       />
     </div>
   );

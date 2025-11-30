@@ -12,28 +12,43 @@ export default function GroupSelector({ session, onSelectGroup, onLogout }) {
   const [joinCode, setJoinCode] = useState('');
 
   useEffect(() => {
-    fetchGroups();
+    if (session?.user?.id) {
+        fetchGroups();
+    }
   }, [session]);
 
   const fetchGroups = async () => {
     try {
+      setLoading(true);
+      
       const { data: membersData, error: membersError } = await supabase
         .from('group_members')
-        .select('group_id, role, groups:group_id (id, name, code)')
+        .select('group_id, role, groups:group_id (id, name, code, created_by)')
         .eq('user_id', session.user.id);
 
-      if (membersError) throw membersError;
+      if (membersError) {
+        // Truco para ver el error real si viene como objeto extraño
+        console.error("Supabase Error Detallado:", JSON.stringify(membersError, null, 2));
+        throw membersError;
+      }
 
-      const formattedGroups = membersData.map(item => ({
-        id: item.groups.id,
-        name: item.groups.name,
-        code: item.groups.code,
-        role: item.role
-      }));
+      // Filtrado seguro para evitar crash si un grupo fue borrado pero la membresía quedó huerfana
+      const formattedGroups = (membersData || [])
+        .filter(item => item.groups !== null) 
+        .map(item => ({
+          id: item.groups.id,
+          name: item.groups.name,
+          code: item.groups.code,
+          role: item.role,
+          isCreator: item.groups.created_by === session.user.id
+        }))
+        // Ordenar: Admins primero
+        .sort((a, b) => (a.role === 'admin' ? -1 : 1));
 
       setGroups(formattedGroups);
     } catch (err) {
-      console.error("Error cargando grupos:", err);
+      console.error("Error final en fetchGroups:", err);
+      // No mostramos toast intrusivo al cargar, solo log
     } finally {
       setLoading(false);
     }
@@ -71,6 +86,7 @@ export default function GroupSelector({ session, onSelectGroup, onLogout }) {
       setNewGroupName('');
       toast.success(`Grupo "${newGroupName}" creado con éxito`);
     } catch (err) {
+      console.error(err);
       toast.error(err.message || "Error al crear el grupo");
     } finally {
       setLoading(false);
@@ -101,15 +117,16 @@ export default function GroupSelector({ session, onSelectGroup, onLogout }) {
       toast.success("¡Te has unido al grupo correctamente!");
       
     } catch (err) {
+      console.error(err);
       toast.error(err.message || "Error al unirse al grupo");
     } finally {
       setLoading(false);
     }
   };
 
-  // --- NUEVA FUNCIÓN: COMPARTIR ---
+  // --- COMPARTIR ---
   const handleShare = (e, group) => {
-    e.stopPropagation(); // Evita que se seleccione el grupo al hacer click en compartir
+    e.stopPropagation(); 
     const shareText = `🎄 ¡Únete a mi intercambio "${group.name}"!\n\n1. Entra a: ${window.location.origin}\n2. Usa el código: ${group.code}`;
     
     navigator.clipboard.writeText(shareText).then(() => {
@@ -178,7 +195,7 @@ export default function GroupSelector({ session, onSelectGroup, onLogout }) {
                     </div>
                     
                     <div className="z-10 flex items-center gap-2">
-                        {/* Botón Compartir (NUEVO) */}
+                        {/* Botón Compartir */}
                         <button 
                             onClick={(e) => handleShare(e, group)}
                             className="p-2 rounded-full hover:bg-white/10 text-slate-500 hover:text-purple-400 transition-colors"
@@ -225,7 +242,7 @@ export default function GroupSelector({ session, onSelectGroup, onLogout }) {
             </div>
           )}
 
-          {/* ... Vistas CREATE y JOIN (Sin cambios) ... */}
+          {/* ... Vistas CREATE y JOIN ... */}
           {viewMode === 'create' && (
             <form onSubmit={handleCreateGroup} className="mb-4 animate-in fade-in slide-in-from-bottom-4 relative z-10">
                <div className="space-y-2 mb-6 group/input">
