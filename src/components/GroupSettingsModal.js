@@ -36,7 +36,8 @@ export default function GroupSettingsModal({ isOpen, onClose, group, onUpdate, o
 
   const fetchGroupStats = async () => {
     setLoadingStats(true);
-    // 1. Obtener miembros
+    
+    // 🛑 OPTIMIZACIÓN: Se obtiene miembros y sus perfiles en una sola consulta
     const { data: members } = await supabase
       .from('group_members')
       .select('user_id, profiles(email, username)')
@@ -51,6 +52,7 @@ export default function GroupSettingsModal({ isOpen, onClose, group, onUpdate, o
     if (members && wishes) {
         const activeUserIds = new Set(wishes.map(w => w.user_id));
         const lazies = members
+            // 🛑 La propiedad profiles es un objeto en la respuesta de Supabase
             .filter(m => !activeUserIds.has(m.user_id))
             .map(m => m.profiles?.username || m.profiles?.email || 'Usuario Desconocido');
         setLazyUsers(lazies);

@@ -17,10 +17,11 @@ export default function GroupMembersModal({ isOpen, onClose, groupId, currentUse
   const fetchMembers = async () => {
     setLoading(true);
     try {
-      // 1. Obtener la lista de miembros del grupo
+      // 🛑 OPTIMIZACIÓN: Se usa un solo SELECT con join para obtener miembros Y perfiles (JOIN implícito)
       const { data: membersData, error: membersError } = await supabase
         .from('group_members')
-        .select('user_id, role')
+        // Se seleccionan datos de group_members y todos los datos de profiles relacionados
+        .select('user_id, role, profiles(id, username, avatar_style, avatar_seed)')
         .eq('group_id', groupId);
 
       if (membersError) throw membersError;
@@ -29,37 +30,23 @@ export default function GroupMembersModal({ isOpen, onClose, groupId, currentUse
         setMembers([]);
         return;
       }
-
-      // Detectar si YO soy admin basándome en la lista descargada
+      
       const myId = currentUserSession?.user?.id;
       const myMembership = membersData.find(m => m.user_id === myId);
+      
+      // Detección de Admin
       if (myMembership && myMembership.role === 'admin') {
         setAmIAdmin(true);
+      } else {
+        setAmIAdmin(false);
       }
 
-      // 2. Obtener los perfiles de estos miembros
-      const userIds = membersData.map(m => m.user_id);
-      
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, username, avatar_style, avatar_seed') // Pedimos solo lo que existe seguro
-        .in('id', userIds);
-
-      if (profilesError) throw profilesError;
-
-      // 3. Unir datos (Join Manual)
-      const combinedData = membersData.map(member => {
-        const profile = profilesData.find(p => p.id === member.user_id) || {};
-        return {
-          ...member,
-          profiles: profile 
-        };
-      });
+      // 🛑 Nota: Ya no se necesita el paso 2 (fetch profiles) ni el paso 3 (join manual)
 
       // Ordenar: Admins primero
-      combinedData.sort((a, b) => (a.role === 'admin' ? -1 : 1));
+      membersData.sort((a, b) => (a.role === 'admin' ? -1 : 1));
 
-      setMembers(combinedData);
+      setMembers(membersData);
 
     } catch (error) {
       console.error("Error cargando miembros:", error);

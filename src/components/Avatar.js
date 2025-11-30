@@ -1,5 +1,5 @@
-// Usamos etiqueta nativa <img> para evitar problemas con Next/Image
 import React from 'react';
+import Image from 'next/image'; // 🛑 Importación de Next/Image
 
 export default function Avatar({ seed, style = "notionists", params = "", alt = "Avatar", size = "md", className = "" }) {
   // Tamaños predefinidos
@@ -24,7 +24,6 @@ export default function Avatar({ seed, style = "notionists", params = "", alt = 
   }
 
   // --- MAPA DE ESTILOS ACTUALIZADO ---
-  // Si el estilo no está en la lista, usamos el valor directo (fallback)
   let collection = style;
   const styleMap = {
     'robot': 'bottts-neutral',
@@ -32,9 +31,9 @@ export default function Avatar({ seed, style = "notionists", params = "", alt = 
     'monster': 'fun-emoji',
     'pixel': 'pixel-art',
     'adventurer': 'adventurer',
-    'notionists': 'notionists', // Nuevo estilo limpio
-    'open-peeps': 'open-peeps',  // Nuevo estilo caricatura
-    'bottts': 'bottts'          // Robots clásicos (para Grinch)
+    'notionists': 'notionists',
+    'open-peeps': 'open-peeps',
+    'bottts': 'bottts'
   };
   
   if (styleMap[style]) collection = styleMap[style];
@@ -48,14 +47,16 @@ export default function Avatar({ seed, style = "notionists", params = "", alt = 
       className={`relative overflow-hidden rounded-full bg-slate-800 border border-white/10 shadow-md shrink-0 ${className}`}
       style={{ width: pxSize, height: pxSize }}
     >
-      {/* Etiqueta IMG nativa para máxima compatibilidad */}
-      <img
+      {/* 🛑 Reemplazo de <img> por Image de Next.js para cacheo y optimización */}
+      <Image
         src={avatarUrl}
         alt={alt}
         width={pxSize}
         height={pxSize}
         className="object-cover w-full h-full"
-        loading="lazy"
+        // 'loading' sigue siendo útil para la carga perezosa
+        loading="lazy" 
+        // Nota: Asegúrate de que 'api.dicebear.com' esté en tu next.config.mjs
       />
     </div>
   );
