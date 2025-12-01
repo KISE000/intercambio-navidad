@@ -41,6 +41,23 @@ export default function Home() {
   const getUserAvatarStyle = () => session?.user?.user_metadata?.avatar_style || 'robot';
   const getUserAvatarSeed = () => session?.user?.user_metadata?.avatar_seed || session?.user?.email;
 
+  // --- HELPER: Calcular días restantes ---
+  const getDaysLeft = (dateString) => {
+    if (!dateString) return null;
+    const target = new Date(dateString);
+    // Ajustar zona horaria si es necesario, aquí usamos UTC simplificado para evitar problemas
+    // Le sumamos las horas para compensar la diferencia horaria al convertir a objeto Date
+    target.setMinutes(target.getMinutes() + target.getTimezoneOffset());
+    
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    
+    const diff = target - today;
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  };
+
+  const daysLeft = selectedGroup?.event_date ? getDaysLeft(selectedGroup.event_date) : null;
+
   // --- 0. Inicializar Tema ---
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') || 'dark';
@@ -101,14 +118,12 @@ export default function Home() {
     </div>
   );
 
-  // --- 2. UX: Scroll Reset al entrar a Grupo ---
   useEffect(() => {
     if (selectedGroup) {
       window.scrollTo(0, 0);
     }
   }, [selectedGroup]);
 
-  // --- 3. Lógica Supabase ---
   const fetchWishes = useCallback(async () => {
     if (!selectedGroup || !session) return;
     
@@ -138,7 +153,6 @@ export default function Home() {
     }
   }, [selectedGroup, session]); 
   
-  // --- 4. Auth State Change ---
   useEffect(() => {
     let mounted = true;
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -224,8 +238,6 @@ export default function Home() {
   if (loading) return (
     <div className="min-h-screen bg-background flex items-center justify-center text-purple-500 relative overflow-hidden"><span className="animate-pulse z-10 font-mono">Iniciando sistemas...</span></div>
   );
-
-  // --- VISTAS INICIALES CON NIEVE Y TOGGLE ---
 
   if (!session) return (
     <div className="min-h-screen bg-background flex items-center justify-center relative overflow-hidden transition-colors duration-300">
@@ -453,9 +465,9 @@ export default function Home() {
         </>
       )}
 
-      {/* ... RESTO DEL CONTENIDO DASHBOARD ... */}
+      {/* Hero y Stats */}
       <div className="relative z-10 max-w-4xl mx-auto px-4 mt-8 mb-12">
-         {/* ... (Hero, Stats, Tabs, etc. se mantienen igual) ... */}
+         {/* --- BROADCAST ALERT --- */}
          {selectedGroup.announcement && (
             <div className="mb-8 p-4 bg-cyan-900/10 border border-cyan-500/30 rounded-xl flex gap-4 animate-in slide-in-from-top-4 duration-500 shadow-[0_0_20px_rgba(34,211,238,0.1)]">
                 <div className="text-2xl animate-pulse">📢</div>
@@ -493,18 +505,47 @@ export default function Home() {
                       <div className="h-full bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 rounded-full transition-all duration-1000 ease-out shadow-lg shadow-purple-500/50" style={{ width: `${Math.min(progressPercentage, 100)}%` }}></div>
                    </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                
+                {/* GRID DE CARDS CON FECHA */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                    <div className="bg-background/50 backdrop-blur-sm border border-purple-500/20 rounded-xl p-4 hover:border-purple-500/40 transition-colors">
-                      <div className="flex items-center gap-3 mb-2"><span className="text-2xl">✏️</span><span className="text-xs text-text-muted uppercase tracking-wider">Mis Deseos</span></div>
-                      <p className="text-3xl font-bold text-text-main">{myWishesCount}</p>
+                      <div className="flex items-center gap-2 mb-2"><span className="text-xl">✏️</span><span className="text-[10px] text-text-muted uppercase tracking-wider">Mis Deseos</span></div>
+                      <p className="text-2xl font-bold text-text-main">{myWishesCount}</p>
                    </div>
                    <div className="bg-background/50 backdrop-blur-sm border border-pink-500/20 rounded-xl p-4 hover:border-pink-500/40 transition-colors">
-                      <div className="flex items-center gap-3 mb-2"><span className="text-2xl">👥</span><span className="text-xs text-text-muted uppercase tracking-wider">Del Grupo</span></div>
-                      <p className="text-3xl font-bold text-text-main">{othersWishesCount}</p>
+                      <div className="flex items-center gap-2 mb-2"><span className="text-xl">👥</span><span className="text-[10px] text-text-muted uppercase tracking-wider">Del Grupo</span></div>
+                      <p className="text-2xl font-bold text-text-main">{othersWishesCount}</p>
                    </div>
                    <div className="bg-background/50 backdrop-blur-sm border border-orange-500/20 rounded-xl p-4 hover:border-orange-500/40 transition-colors">
-                      <div className="flex items-center gap-3 mb-2"><span className="text-2xl">🎯</span><span className="text-xs text-text-muted uppercase tracking-wider">Total</span></div>
-                      <p className="text-3xl font-bold text-text-main">{totalWishes}</p>
+                      <div className="flex items-center gap-2 mb-2"><span className="text-xl">🎯</span><span className="text-[10px] text-text-muted uppercase tracking-wider">Total</span></div>
+                      <p className="text-2xl font-bold text-text-main">{totalWishes}</p>
+                   </div>
+                   
+                   {/* NUEVA CARD: FECHA DEL EVENTO */}
+                   <div className="bg-background/50 backdrop-blur-sm border border-blue-500/20 rounded-xl p-4 hover:border-blue-500/40 transition-colors relative overflow-hidden group/date">
+                      {/* Efecto brillo sutil azul */}
+                      <div className="absolute -right-4 -top-4 w-16 h-16 bg-blue-500/10 rounded-full blur-xl group-hover/date:bg-blue-500/20 transition-colors"></div>
+                      
+                      <div className="flex items-center gap-2 mb-2 relative z-10">
+                          <span className="text-xl">📅</span>
+                          <span className="text-[10px] text-text-muted uppercase tracking-wider">Evento</span>
+                      </div>
+                      
+                      {daysLeft !== null ? (
+                          <div>
+                              <p className="text-2xl font-bold text-text-main leading-none">
+                                  {new Date(selectedGroup.event_date + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                              </p>
+                              <p className={`text-[10px] font-bold mt-1 ${daysLeft < 0 ? 'text-red-400' : daysLeft === 0 ? 'text-emerald-400 animate-pulse' : 'text-blue-400'}`}>
+                                  {daysLeft < 0 ? '¡Ya pasó!' : daysLeft === 0 ? '¡ES HOY!' : `Faltan ${daysLeft} días`}
+                              </p>
+                          </div>
+                      ) : (
+                          <div>
+                              <p className="text-sm text-text-muted italic">Sin fecha</p>
+                              {isAdmin && <button onClick={() => setIsSettingsModalOpen(true)} className="text-[9px] text-blue-400 hover:underline mt-1">Definir fecha</button>}
+                          </div>
+                      )}
                    </div>
                 </div>
              </div>
@@ -512,6 +553,7 @@ export default function Home() {
          </div>
       </div>
 
+      {/* Tabs y Listas */}
       <div className="max-w-4xl mx-auto px-4 mt-10 relative z-10">
         <div className="flex justify-center mb-12">
           <div className="bg-surface p-1 rounded-xl border border-border flex w-full max-w-sm relative shadow-xl">

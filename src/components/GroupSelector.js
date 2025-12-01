@@ -20,9 +20,10 @@ export default function GroupSelector({ session, onSelectGroup, onLogout, theme,
     try {
       setLoading(true);
       
+      // AGREGADO: event_date en la consulta
       const { data: membersData, error: membersError } = await supabase
         .from('group_members')
-        .select('group_id, role, groups:group_id (id, name, code, created_by)')
+        .select('group_id, role, groups:group_id (id, name, code, created_by, event_date)')
         .eq('user_id', session.user.id);
 
       if (membersError) throw membersError;
@@ -33,6 +34,7 @@ export default function GroupSelector({ session, onSelectGroup, onLogout, theme,
           id: item.groups.id,
           name: item.groups.name,
           code: item.groups.code,
+          event_date: item.groups.event_date, // AGREGADO: Mapeo de la fecha
           role: item.role,
           isCreator: item.groups.created_by === session.user.id
         }))

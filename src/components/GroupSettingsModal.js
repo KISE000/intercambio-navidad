@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabaseClient';
 import { toast } from 'sonner';
-import Avatar from './Avatar'; // 🛑 Importamos Avatar
+import Avatar from './Avatar'; 
 
 export default function GroupSettingsModal({ isOpen, onClose, group, session, onUpdate, onDelete }) {
   const [mounted, setMounted] = useState(false);
@@ -11,13 +11,14 @@ export default function GroupSettingsModal({ isOpen, onClose, group, session, on
   // Form States
   const [name, setName] = useState('');
   const [announcement, setAnnouncement] = useState('');
+  const [eventDate, setEventDate] = useState(''); // <--- NUEVO ESTADO PARA FECHA
   
   // Data States
   const [loading, setLoading] = useState(false);
   
   // Stats / Members Data
   const [lazyUsers, setLazyUsers] = useState([]);
-  const [membersList, setMembersList] = useState([]); // 🛑 Lista completa de miembros
+  const [membersList, setMembersList] = useState([]); 
   const [loadingData, setLoadingData] = useState(false);
   
   // Delete Confirmation
@@ -28,6 +29,7 @@ export default function GroupSettingsModal({ isOpen, onClose, group, session, on
     if (group) {
       setName(group.name);
       setAnnouncement(group.announcement || '');
+      setEventDate(group.event_date || ''); // <--- CARGAR FECHA AL ABRIR
     }
   }, [group]);
 
@@ -62,13 +64,11 @@ export default function GroupSettingsModal({ isOpen, onClose, group, session, on
   const fetchMembersList = async () => {
     setLoadingData(true);
     try {
-        // Usamos el RPC seguro que implementamos anteriormente
         const { data: membersData, error } = await supabase
             .rpc('get_group_members_bypass', { group_id_input: group.id });
         
         if (error) throw error;
 
-        // Mapeamos la respuesta plana del RPC
         const mapped = (membersData || []).map(m => ({
             user_id: m.user_id,
             role: m.role,
@@ -106,7 +106,11 @@ export default function GroupSettingsModal({ isOpen, onClose, group, session, on
     try {
         const { data, error } = await supabase
           .from('groups')
-          .update({ name: name.trim(), announcement: announcement.trim() || null })
+          .update({ 
+              name: name.trim(), 
+              announcement: announcement.trim() || null,
+              event_date: eventDate || null // <--- GUARDAR FECHA
+          })
           .eq('id', group.id)
           .select();
 
@@ -201,6 +205,18 @@ export default function GroupSettingsModal({ isOpen, onClose, group, session, on
                             className="w-full bg-[#0B0E14] border border-white/10 rounded-xl px-4 py-3 text-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all"
                         />
                     </div>
+
+                    {/* INPUT DE FECHA */}
+                    <div>
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 block mb-2">Fecha del Evento</label>
+                        <input 
+                            type="date" 
+                            value={eventDate}
+                            onChange={(e) => setEventDate(e.target.value)}
+                            className="w-full bg-[#0B0E14] border border-white/10 rounded-xl px-4 py-3 text-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all [color-scheme:dark]"
+                        />
+                    </div>
+
                     <div>
                         <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 block mb-2 flex justify-between">
                             <span>📢 Mensaje Fijado (Broadcast)</span>
@@ -222,7 +238,7 @@ export default function GroupSettingsModal({ isOpen, onClose, group, session, on
                 </div>
             )}
 
-            {/* --- TAB MIEMBROS (Nuevo) --- */}
+            {/* --- TAB MIEMBROS --- */}
             {activeTab === 'members' && (
                 <div className="space-y-4">
                     <div className="flex justify-between items-center mb-2">
