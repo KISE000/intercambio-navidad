@@ -11,10 +11,9 @@ import WishListSkeleton from '../components/WishListSkeleton';
 import GroupSelector from '../components/GroupSelector';
 import Avatar from '../components/Avatar'; 
 import AvatarSelector from '../components/AvatarSelector'; 
-import GroupMembersModal from '../components/GroupMembersModal';
+// 🛑 Removed: GroupMembersModal import
 import GroupSettingsModal from '../components/GroupSettingsModal';
-// 🛑 Necesitas crear este componente:
-// import ThemeSettingsModal from '../components/ThemeSettingsModal';
+import ShareTicketModal from '../components/ShareTicketModal'; 
 
 export default function Home() {
   const [session, setSession] = useState(null);
@@ -32,9 +31,9 @@ export default function Home() {
   
   // Modals
   const [isAvatarSelectorOpen, setIsAvatarSelectorOpen] = useState(false);
-  const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
+  // 🛑 Removed: isMembersModalOpen state
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-  // 🛑 Nuevo estado para ajustes visuales (global)
+  const [isTicketOpen, setIsTicketOpen] = useState(false);
   const [isThemeSettingsOpen, setIsThemeSettingsOpen] = useState(false);
   
   const menuRef = useRef(null);
@@ -42,7 +41,7 @@ export default function Home() {
   const getUserAvatarStyle = () => session?.user?.user_metadata?.avatar_style || 'robot';
   const getUserAvatarSeed = () => session?.user?.user_metadata?.avatar_seed || session?.user?.email;
 
-  // --- 1. Efecto de Nieve ---
+  // --- 1. Snow Effect ---
   useEffect(() => {
     const flakes = Array.from({ length: 50 }).map((_, i) => ({
       id: i,
@@ -75,13 +74,9 @@ export default function Home() {
     </div>
   );
 
-  // --- 2. Lógica Supabase (OPTIMIZADA) ---
+  // --- 2. Supabase Logic ---
   const fetchWishes = useCallback(async () => {
-    // Validación temprana: si no hay grupo O sesión, no hacer nada
-    if (!selectedGroup || !session) {
-      console.log('⏸️ fetchWishes cancelado: falta grupo o sesión');
-      return;
-    }
+    if (!selectedGroup || !session) return;
     
     setLoadingWishes(true);
     
@@ -98,11 +93,10 @@ export default function Home() {
         toast.error('Error al cargar deseos');
         setWishes([]); 
       } else {
-        console.log(`✅ Cargados ${data?.length || 0} deseos para el grupo "${selectedGroup.name}"`);
         setWishes(data || []);
       }
     } catch (err) {
-      console.error('❌ Excepción en fetchWishes:', err);
+      console.error('❌ Exception in fetchWishes:', err);
       toast.error('Error de red al cargar deseos');
       setWishes([]);
     } finally {
@@ -171,20 +165,14 @@ export default function Home() {
     }).catch(() => toast.error("Error al copiar"));
   };
 
-  // Manejo de actualización de grupo (Broadcast, Nombre, Código)
   const handleGroupUpdate = (updatedGroupData) => {
-    setSelectedGroup((prev) => ({
-        ...prev, 
-        ...updatedGroupData
-    }));
+    setSelectedGroup((prev) => ({ ...prev, ...updatedGroupData }));
   };
 
-  // Manejo de eliminación de grupo
   const handleGroupDelete = () => {
     setSelectedGroup(null);
     setWishes([]);
     setIsSettingsModalOpen(false);
-    // GroupSelector se mostrará automáticamente porque selectedGroup es null
   };
 
   const filteredWishes = wishes.filter(w => {
@@ -199,7 +187,6 @@ export default function Home() {
   const totalWishes = wishes.length;
   const progressPercentage = (myWishesCount / 10) * 100;
 
-  // --- Render Conditional ---
   if (loading) return (
     <div className="min-h-screen bg-[#0B0E14] flex items-center justify-center text-purple-500 relative overflow-hidden"><span className="animate-pulse z-10 font-mono">Iniciando sistemas...</span></div>
   );
@@ -212,12 +199,10 @@ export default function Home() {
     <main className="min-h-screen bg-[#0B0E14] flex items-center justify-center relative overflow-hidden"><div className="z-10 w-full"><GroupSelector session={session} onSelectGroup={setSelectedGroup} onLogout={handleLogout} /></div></main>
   );
 
-  // Check si soy admin del grupo actual
   const isAdmin = selectedGroup?.role === 'admin';
 
   return (
     <div className="min-h-screen bg-[#0B0E14] text-slate-200 font-sans pb-20 relative selection:bg-purple-500/30">
-      {/* 🛑 Nieve Renderizada una sola vez en el contenedor principal */}
       <SnowBackground />
 
       {/* HEADER */}
@@ -236,7 +221,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Móvil Trigger */}
+        {/* Mobile Trigger */}
         <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden relative group outline-none">
           <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full opacity-0 group-active:opacity-50 transition duration-200 blur"></div>
           <Avatar seed={getUserAvatarSeed()} style={getUserAvatarStyle()} size="md" className="relative" />
@@ -258,7 +243,6 @@ export default function Home() {
 
            {isMenuOpen && (
              <div className="absolute right-0 top-full mt-3 w-72 glass-menu rounded-2xl overflow-hidden animate-menu-in z-50 origin-top-right">
-               {/* User Info Card */}
                <div className="p-5 border-b border-white/5 bg-gradient-to-b from-white/5 to-transparent">
                  <div className="flex items-center gap-3 mb-3">
                     <Avatar seed={getUserAvatarSeed()} style={getUserAvatarStyle()} size="md" />
@@ -274,43 +258,38 @@ export default function Home() {
                  )}
                </div>
 
-               {/* 🛑 INICIO DE MENÚ REESTRUCTURADO SIMPLIFICADO */}
                <div className="p-2 space-y-1">
-                   {/* I. HERRAMIENTAS DE ADMINISTRACIÓN */}
                    {isAdmin && (
                        <>
                            <h4 className="text-[9px] text-yellow-500/70 font-mono uppercase tracking-widest px-2 pt-1 pb-1">ADMIN TOOLS</h4>
                            
                            <button onClick={() => { setIsSettingsModalOpen(true); setIsMenuOpen(false); }} className="menu-item group">
-                               {/* 🛑 RENOMBRE */}
                                <span className="menu-icon-box text-cyan-400 group-hover:bg-cyan-500/20 group-hover:text-cyan-300">⚙️</span> 
                                <span>Panel Admin</span>
                            </button>
-                           
-                           <button onClick={() => { setIsMembersModalOpen(true); setIsMenuOpen(false); }} className="menu-item group">
-                               <span className="menu-icon-box text-yellow-400 group-hover:bg-yellow-500/20 group-hover:text-yellow-300">👥</span> 
-                               <span>Gestión de Miembros</span>
-                           </button>
+                           {/* 🛑 Members management moved to Admin Panel */}
                            <div className="h-px bg-white/5 my-1 mx-2"></div>
                        </>
                    )}
 
-                   {/* II. CONFIGURACIÓN DE CUENTA */}
                    <h4 className="text-[9px] text-slate-500 font-mono uppercase tracking-widest px-2 pt-1 pb-1">MI CUENTA</h4>
                    
-                   {/* 🛑 NUEVO: Ajustes Visuales (Global) */}
+                   <button onClick={() => { setIsTicketOpen(true); setIsMenuOpen(false); }} className="menu-item group">
+                       <span className="menu-icon-box text-emerald-400 group-hover:bg-emerald-500/20 group-hover:text-emerald-300">🎫</span> 
+                       <span>Mi Ticket Navideño</span>
+                   </button>
+                   
                    <button onClick={() => { setIsThemeSettingsOpen(true); setIsMenuOpen(false); }} className="menu-item group">
                        <span className="menu-icon-box text-pink-400 group-hover:bg-pink-500/20 group-hover:text-pink-300">🖌️</span> 
                        <span>Ajustes Visuales</span>
                    </button>
                    
                    <button onClick={() => { setIsAvatarSelectorOpen(true); setIsMenuOpen(false); }} className="menu-item group">
-                       <span className="menu-icon-box text-pink-400 group-hover:bg-pink-500/20 group-hover:text-pink-300">🎨</span> 
+                       <span className="menu-icon-box text-purple-400 group-hover:bg-purple-500/20 group-hover:text-purple-300">🎨</span> 
                        <span>Personalizar Avatar</span>
                    </button>
                    <div className="h-px bg-white/5 my-1 mx-2"></div>
 
-                   {/* III. GRUPO Y CONEXIÓN */}
                    <h4 className="text-[9px] text-slate-500 font-mono uppercase tracking-widest px-2 pt-1 pb-1">GRUPO</h4>
 
                    <button onClick={handleInvite} className="menu-item group">
@@ -323,7 +302,6 @@ export default function Home() {
                        <span>Cambiar de Grupo</span>
                    </button>
                    
-                   {/* Separador solo para Logout */}
                    <div className="h-px bg-white/5 my-1 mx-2"></div>
 
                    <button onClick={handleLogout} className="menu-item group hover:!bg-red-500/10 hover:!border-red-500/20">
@@ -331,20 +309,17 @@ export default function Home() {
                        <span className="group-hover:text-red-300">Cerrar Sesión</span>
                    </button>
                </div>
-               {/* 🛑 FIN DE MENÚ REESTRUCTURADO SIMPLIFICADO */}
-
              </div>
            )}
         </div>
       </header>
 
-      {/* MENÚ MÓVIL */}
+      {/* MOBILE MENU */}
       {isMobileMenuOpen && (
         <>
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] animate-in fade-in duration-200" onClick={() => setIsMobileMenuOpen(false)} />
           <div className="fixed top-0 right-0 bottom-0 w-[85vw] max-w-sm bg-[#151923] border-l border-white/10 z-[70] shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col">
              
-             {/* Header Móvil */}
              <div className="p-6 border-b border-white/5 bg-[#0B0E14]/50 flex justify-between items-center relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 to-transparent pointer-events-none"></div>
                 <h2 className="text-xl font-bold text-white relative z-10 flex items-center gap-2">
@@ -355,7 +330,6 @@ export default function Home() {
                 </button>
             </div>
 
-            {/* User Card Móvil */}
             <div className="p-6 border-b border-white/5">
               <div className="flex items-center gap-4 mb-6">
                 <div className="relative">
@@ -376,32 +350,26 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Actions Móvil */}
             <div className="p-4 space-y-2 overflow-y-auto flex-1">
               
               {isAdmin && (
                 <>
                     <button onClick={() => { setIsSettingsModalOpen(true); setIsMobileMenuOpen(false); }} className="menu-item group py-4">
-                        {/* 🛑 RENOMBRE */}
                         <span className="menu-icon-box text-xl text-cyan-400">⚙️</span>
                         <span className="text-base">Panel Admin</span>
                     </button>
-                    <button onClick={() => { setIsMembersModalOpen(true); setIsMobileMenuOpen(false); }} className="menu-item group py-4">
-                        <span className="menu-icon-box text-xl text-yellow-400">👥</span>
-                        <span className="text-base">Gestión de Miembros</span>
-                    </button>
+                    {/* 🛑 Removed separate Members button */}
                 </>
               )}
 
-              {/* 🛑 NUEVO: Ajustes Visuales (Global) */}
+              <button onClick={() => { setIsTicketOpen(true); setIsMobileMenuOpen(false); }} className="menu-item group py-4">
+                  <span className="menu-icon-box text-xl text-emerald-400">🎫</span>
+                  <span className="text-base">Mi Ticket Navideño</span>
+              </button>
+
               <button onClick={() => { setIsThemeSettingsOpen(true); setIsMobileMenuOpen(false); }} className="menu-item group py-4">
                   <span className="menu-icon-box text-xl text-pink-400">🖌️</span>
                   <span className="text-base">Ajustes Visuales</span>
-              </button>
-
-              <button onClick={handleInvite} className="menu-item group py-4">
-                <span className="menu-icon-box text-xl text-blue-400">🔗</span>
-                <span className="text-base">Invitar Amigos</span>
               </button>
 
               <button onClick={() => { setIsAvatarSelectorOpen(true); setIsMobileMenuOpen(false); }} className="menu-item group py-4">
@@ -422,7 +390,6 @@ export default function Home() {
               </button>
             </div>
 
-            {/* Footer Móvil */}
             <div className="p-6 border-t border-white/5 bg-[#0B0E14]/30">
               <p className="text-[10px] text-slate-600 text-center font-mono uppercase tracking-widest">iShop Navidad v1.2 • Cyberpunk Ed.</p>
             </div>
@@ -566,26 +533,24 @@ export default function Home() {
         }}
       />
 
-      <GroupMembersModal 
-        isOpen={isMembersModalOpen}
-        onClose={() => setIsMembersModalOpen(false)}
-        groupId={selectedGroup?.id}
-        currentUserSession={session}
-      />
+      {/* 🛑 Eliminado: GroupMembersModal */}
 
       <GroupSettingsModal 
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
         group={selectedGroup}
+        session={session}
         onUpdate={handleGroupUpdate}
         onDelete={handleGroupDelete}
       />
       
-      {/* 🛑 PLACEHOLDER NUEVO MODAL DE TEMA */}
-      {/* <ThemeSettingsModal 
-        isOpen={isThemeSettingsOpen}
-        onClose={() => setIsThemeSettingsOpen(false)}
-      /> */}
+      <ShareTicketModal 
+        isOpen={isTicketOpen}
+        onClose={() => setIsTicketOpen(false)}
+        session={session}
+        wishes={wishes}
+        groupName={selectedGroup.name}
+      />
       
     </div>
   );
