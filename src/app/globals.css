@@ -3,29 +3,69 @@
 @tailwind utilities;
 
 :root {
-  --bg-app: #0f172a;
+  /* --- TEMA DARK (CYBERPUNK ORIGINAL) --- */
+  --bg-app: #050505;
+  --bg-card: #151923;
+  --bg-card-highlight: #1A1F2E;
   --primary: #8b5cf6;
-  --font-space: 'Inter', sans-serif; /* Asumiendo Inter o similar por defecto */
+  --text-main: #e2e8f0;
+  --text-muted: #94a3b8;
+  --border-color: rgba(255, 255, 255, 0.1);
+  --input-bg: rgba(11, 14, 20, 0.8);
+  --snow-color: #ffffff;
+  --shadow-color: rgba(139, 92, 246, 0.15); /* Sombra púrpura sutil */
+  --font-space: 'Inter', sans-serif;
 }
 
-/* --- CORRECCIÓN MÓVIL (iOS Fix) --- */
+/* --- TEMA LIGHT (EDICIÓN FROST / HIELO) --- */
+.light {
+  --bg-app: #f1f5f9; /* Slate-100: No blanco puro, sino gris "hielo" */
+  --bg-card: #ffffff; /* Blanco puro para que resalte sobre el fondo */
+  --bg-card-highlight: #f8fafc; /* Slate-50 */
+  --primary: #6366f1; /* Indigo-500: Más vibrante para fondo claro */
+  --text-main: #1e293b; /* Slate-800: Texto fuerte y legible */
+  --text-muted: #64748b; /* Slate-500 */
+  
+  /* Borde sutilmente coloreado, no gris muerto */
+  --border-color: rgba(99, 102, 241, 0.15); 
+  
+  --input-bg: #ffffff;
+  --snow-color: #cbd5e1; /* Slate-300: Nieve grisácea visible */
+  
+  /* La clave del pop: Sombra azulada/violeta difusa */
+  --shadow-color: rgba(99, 102, 241, 0.15); 
+}
+
+/* --- FIX iOS & BASE --- */
 html {
-  background-color: #050505; 
+  background-color: var(--bg-app); 
   height: 100%;
 }
 
-/* --- 1. CONFIGURACIÓN DE FUENTES Y BASE --- */
 body {
-  @apply bg-[var(--bg-app)] text-slate-200 min-h-screen overflow-x-hidden font-sans;
-  background-color: #050505; 
+  @apply bg-background text-text-main min-h-screen overflow-x-hidden font-sans transition-colors duration-300;
   
-  /* Gradiente Cyberpunk más sutil */
+  /* Gradiente de fondo sutil para dar atmósfera */
   background-image: 
+    radial-gradient(circle at 50% 0%, var(--primary) 0%, transparent 25%, transparent 100%);
+  background-size: 100% 60vh;
+  background-repeat: no-repeat;
+  
+  /* Hacemos la opacidad del gradiente muy baja en light mode para que no queme */
+  opacity: 1; 
+}
+
+/* En modo Dark, el fondo es más complejo */
+:root:not(.light) body {
+    background-image: 
     radial-gradient(circle at 50% 0%, #2e1065 0%, transparent 40%),
     radial-gradient(circle at 0% 100%, #1e1b4b 0%, transparent 30%);
-    
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+}
+
+/* En modo Light, bajamos la intensidad del gradiente superior */
+.light body {
+    background-image: 
+    radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.15) 0%, transparent 40%);
 }
 
 h1, h2, h3, .font-display {
@@ -33,63 +73,54 @@ h1, h2, h3, .font-display {
   letter-spacing: -0.02em;
 }
 
-/* --- 2. SCROLLBAR & SELECTION --- */
+/* --- SCROLLBAR --- */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0B0E14; 
+  background: var(--bg-app); 
 }
 ::-webkit-scrollbar-thumb {
-  background: #3b0764; 
+  background: var(--primary); 
   border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #7c3aed; 
-}
-
-::selection {
-  background-color: #d946ef;
-  color: white;
 }
 
 @layer components {
   /* Input estandarizado */
   .cyber-input {
-    @apply w-full bg-[#0B0E14]/80 backdrop-blur-sm border border-white/10 text-slate-200 rounded-xl px-4 py-3 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-all placeholder:text-slate-600 focus:shadow-[0_0_15px_rgba(168,85,247,0.2)];
+    @apply w-full bg-[var(--input-bg)] backdrop-blur-sm border border-border text-text-main rounded-xl px-4 py-3 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-text-muted shadow-sm focus:shadow-[0_0_15px_rgba(99,102,241,0.2)];
   }
   
   /* Botón Principal */
   .btn-primary {
-    @apply w-full py-3.5 px-4 rounded-xl font-bold text-white shadow-[0_0_20px_rgba(139,92,246,0.3)] transition-all active:scale-95 bg-gradient-to-r from-purple-600 to-pink-600 hover:shadow-[0_0_30px_rgba(139,92,246,0.5)] hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed border border-white/10;
+    @apply w-full py-3.5 px-4 rounded-xl font-bold text-white shadow-lg shadow-purple-500/30 transition-all active:scale-95 bg-gradient-to-r from-purple-600 to-pink-600 hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed border border-white/10;
   }
 
   .input-label {
-    @apply block text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-[0.2em] ml-1;
+    @apply block text-[10px] font-bold text-text-muted uppercase mb-2 tracking-[0.2em] ml-1;
   }
 
-  /* --- NUEVO: MENÚ CYBERPUNK --- */
+  /* --- MENU --- */
   .glass-menu {
-    @apply bg-[#1A1F2E]/95 backdrop-blur-xl border border-white/10 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)];
+    /* Fondo sólido con tinte en light mode para contraste, blur en dark */
+    @apply bg-surface backdrop-blur-xl border border-border shadow-xl shadow-[var(--shadow-color)];
   }
 
   .menu-item {
-    @apply w-full text-left px-4 py-3 text-sm text-slate-300 hover:text-white rounded-xl flex items-center gap-3 transition-all duration-200 hover:bg-white/5 border border-transparent hover:border-white/5 active:scale-[0.98];
+    @apply w-full text-left px-4 py-3 text-sm text-text-muted hover:text-text-main rounded-xl flex items-center gap-3 transition-all duration-200 hover:bg-surface-highlight border border-transparent hover:border-border active:scale-[0.98];
   }
   
   .menu-icon-box {
-    @apply w-8 h-8 rounded-lg flex items-center justify-center bg-[#0B0E14] border border-white/5 text-lg shadow-sm group-hover:shadow-[0_0_10px_rgba(139,92,246,0.2)] transition-shadow;
+    @apply w-8 h-8 rounded-lg flex items-center justify-center bg-background border border-border text-lg shadow-sm group-hover:shadow-md transition-shadow text-primary;
   }
 }
 
 /* Animaciones */
 .animate-fall {
   animation: fall 10s linear infinite;
-}
-
-@keyframes shimmer {
-  100% { transform: translateX(100%); }
+  color: var(--snow-color);
+  text-shadow: 0 0 5px var(--bg-card); /* Pequeño borde para contraste en nieve */
 }
 
 /* Animación de entrada suave para el menú */

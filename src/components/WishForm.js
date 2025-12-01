@@ -8,7 +8,7 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
   const [title, setTitle] = useState('')
   const [details, setDetails] = useState('')
   const [link, setLink] = useState('')
-  const [price, setPrice] = useState('') // 💰 Nuevo Estado
+  const [price, setPrice] = useState('')
   const [priority, setPriority] = useState('2')
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
@@ -122,7 +122,7 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
           details, 
           link, 
           priority: parseInt(priority), 
-          price, // 💰 Guardamos precio
+          price, 
           image_url: finalImageUrl, 
           user_id: session.user.id, 
           group_id: groupId 
@@ -146,59 +146,69 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
   }
 
   const priorities = [
-    { id: '1', label: '🔥 Alta', desc: '¡Lo necesito!', style: 'border-red-500/50 bg-red-500/10 text-red-300 shadow-[0_0_15px_rgba(239,68,68,0.2)] hover:bg-red-500/20' },
-    { id: '2', label: '⭐ Media', desc: 'Me haría feliz', style: 'border-yellow-500/50 bg-yellow-500/10 text-yellow-300 shadow-[0_0_15px_rgba(234,179,8,0.2)] hover:bg-yellow-500/20' },
-    { id: '3', label: '🧊 Baja', desc: 'Estaría bien', style: 'border-blue-500/50 bg-blue-500/10 text-blue-300 shadow-[0_0_15px_rgba(59,130,246,0.2)] hover:bg-blue-500/20' },
+    { id: '1', label: '🔥 Alta', desc: '¡Lo necesito!', style: 'border-red-500/50 bg-red-500/10 text-red-600 dark:text-red-300 shadow-[0_0_15px_rgba(239,68,68,0.2)] hover:bg-red-500/20' },
+    { id: '2', label: '⭐ Media', desc: 'Me haría feliz', style: 'border-yellow-500/50 bg-yellow-500/10 text-yellow-600 dark:text-yellow-300 shadow-[0_0_15px_rgba(234,179,8,0.2)] hover:bg-yellow-500/20' },
+    { id: '3', label: '🧊 Baja', desc: 'Estaría bien', style: 'border-blue-500/50 bg-blue-500/10 text-blue-600 dark:text-blue-300 shadow-[0_0_15px_rgba(59,130,246,0.2)] hover:bg-blue-500/20' },
   ];
 
   return (
     <div className="relative group max-w-2xl mx-auto">
+      {/* Glow Trasero */}
       <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 rounded-3xl opacity-20 group-hover:opacity-30 transition duration-500 blur-xl"></div>
       
-      <div className="relative bg-[#151923]/90 backdrop-blur-xl rounded-3xl p-6 md:p-8 border border-white/10 shadow-2xl">
+      {/* Tarjeta Principal */}
+      <div className="relative bg-surface backdrop-blur-xl rounded-3xl p-6 md:p-8 border border-border shadow-2xl transition-colors duration-300">
         
         <div className="flex items-center gap-4 mb-8">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-2xl shadow-[0_0_15px_rgba(168,85,247,0.4)]">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-2xl shadow-lg shadow-purple-500/30 text-white">
             ✨
           </div>
           <div>
-             <h2 className="text-xl font-bold text-white tracking-tight">Nuevo Deseo</h2>
-             <p className="text-xs text-slate-400">¿Qué te gustaría recibir este año?</p>
+             <h2 className="text-xl font-bold text-text-main tracking-tight">Nuevo Deseo</h2>
+             <p className="text-xs text-text-muted">¿Qué te gustaría recibir este año?</p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            {/* INPUT 1: TÍTULO */}
             <div className="space-y-2">
-              <label className="input-label">¿Qué deseas?</label>
-              <input
-                type="text"
-                placeholder="Ej: Audífonos Sony..."
-                className="cyber-input"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                maxLength={50}
-                required
-                autoFocus
-              />
+              <div className="flex justify-between items-center h-5 mb-2">
+                 <label className="input-label mb-0">¿Qué deseas?</label>
+              </div>
+              {/* Envolvemos en relative aunque no tenga icono para igualar la estructura del otro input */}
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Ej: Audífonos Sony..."
+                  className="cyber-input h-[50px] py-0 leading-normal" 
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  maxLength={50}
+                  required
+                  autoFocus
+                />
+              </div>
             </div>
             
+            {/* INPUT 2: LINK */}
             <div className="space-y-2">
-              <label className="input-label flex justify-between">
-                  <span>Link de Referencia</span>
-                  {validLinkIcon && <span className="text-[10px] text-green-400 font-mono animate-pulse">● Link Detectado</span>}
-              </label>
+              <div className="flex justify-between items-center h-5 mb-2">
+                  <label className="input-label mb-0">Link de Referencia</label>
+                  {validLinkIcon && <span className="text-[10px] text-green-500 font-mono animate-pulse">● Link Detectado</span>}
+              </div>
               <div className="relative">
                   <input
                     type="url"
                     placeholder="https://amazon.com/..."
-                    className={`cyber-input ${validLinkIcon ? 'pl-10 border-green-500/30' : ''}`}
+                    className={`cyber-input h-[50px] py-0 leading-normal ${validLinkIcon ? 'pl-10 border-green-500/30' : ''}`}
                     value={link}
                     onChange={(e) => setLink(e.target.value)}
                   />
                   {validLinkIcon && (
-                      <div className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full overflow-hidden bg-white p-0.5">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full overflow-hidden bg-white p-0.5 shadow-sm flex items-center justify-center">
                           <img src={validLinkIcon} alt="Icon" className="w-full h-full object-cover" />
                       </div>
                   )}
@@ -207,7 +217,7 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
           </div>
 
           <div className="space-y-2">
-            <div className="flex justify-between items-center mb-2">
+            <div className="flex justify-between items-center h-5 mb-2">
                 <label className="input-label mb-0">Prioridad y Precio</label>
             </div>
             <div className="grid grid-cols-3 gap-3">
@@ -217,10 +227,10 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
                         type="button"
                         onClick={() => setPriority(p.id)}
                         className={`
-                            relative flex flex-col items-center justify-center py-3 px-1 rounded-xl border transition-all duration-300
+                            relative flex flex-col items-center justify-center py-3 px-1 rounded-xl border transition-all duration-300 h-[60px]
                             ${priority === p.id 
-                                ? `${p.style} scale-[1.02] ring-1 ring-white/20` 
-                                : 'bg-[#0B0E14]/50 border-white/5 text-slate-500 hover:bg-[#1A1F2E] hover:border-white/10'
+                                ? `${p.style} scale-[1.02] ring-1 ring-black/5 dark:ring-white/20` 
+                                : 'bg-background border-border text-text-muted hover:bg-surface-highlight hover:border-text-muted/30'
                             }
                         `}
                     >
@@ -228,13 +238,14 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
                     </button>
                 ))}
             </div>
+            
             {/* 💰 INPUT DE PRECIO */}
             <div className="relative mt-3">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm">$</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted text-sm flex items-center justify-center h-full pt-0.5">$</span>
                 <input 
                     type="text"
                     placeholder="Precio aprox (ej: 20.000)"
-                    className="cyber-input pl-8"
+                    className="cyber-input pl-8 h-[50px] py-0 leading-normal"
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
                 />
@@ -242,42 +253,42 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
           </div>
 
           <div className="space-y-2">
-            <label className="input-label">Detalles / Talla / Color</label>
+            <label className="input-label mb-2 block">Detalles / Talla / Color</label>
             <textarea
               placeholder="Talla M, color negro mate, modelo 2024..."
-              className="cyber-input resize-none h-24"
+              className="cyber-input resize-none h-24 py-3 leading-relaxed"
               value={details}
               onChange={(e) => setDetails(e.target.value)}
             />
           </div>
 
           <div className="space-y-2">
-            <label className="input-label flex justify-between">
-                <span>Imagen (Opcional)</span>
-                <span className="text-[9px] text-slate-500 normal-case bg-white/5 px-2 py-0.5 rounded">Tip: Ctrl+V para pegar</span>
-            </label>
+            <div className="flex justify-between items-center h-5 mb-2">
+                <label className="input-label mb-0">Imagen (Opcional)</label>
+                <span className="text-[9px] text-text-muted normal-case bg-surface-highlight border border-border px-2 py-0.5 rounded">Tip: Ctrl+V para pegar</span>
+            </div>
             <label 
               className={`flex flex-col items-center justify-center w-full h-40 border border-dashed rounded-2xl cursor-pointer transition-all duration-300 relative overflow-hidden group/dropzone ${
                 imagePreview
-                  ? 'border-purple-500/50 bg-[#0B0E14]' 
-                  : 'border-white/10 hover:border-purple-500/50 bg-[#0B0E14]/50 hover:bg-[#1A1F2E]'
+                  ? 'border-purple-500/50 bg-background' 
+                  : 'border-border hover:border-purple-500/50 bg-background/50 hover:bg-surface-highlight'
               }`}
             >
               {imagePreview ? (
                 <div className="relative w-full h-full group/preview">
-                  <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] z-0"></div>
+                  <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] z-0 rounded-2xl"></div>
                   <img src={imagePreview} alt="Preview" className="relative z-10 w-full h-full object-contain p-4" />
                   <button 
                     onClick={clearImage}
-                    className="absolute top-3 right-3 z-20 bg-black/50 text-white hover:bg-red-500/80 hover:text-white p-2 rounded-full opacity-0 group-hover/preview:opacity-100 transition-all backdrop-blur-md border border-white/10"
+                    className="absolute top-3 right-3 z-20 bg-white/90 text-red-500 hover:bg-red-500 hover:text-white p-2 rounded-full opacity-0 group-hover/preview:opacity-100 transition-all backdrop-blur-md border border-black/10 shadow-lg"
                     title="Eliminar imagen"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                   </button>
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center pt-5 pb-6 text-slate-500 group-hover/dropzone:text-purple-400 transition-colors">
-                   <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-3 group-hover/dropzone:bg-purple-500/10 group-hover/dropzone:scale-110 transition-all duration-300">
+                <div className="flex flex-col items-center justify-center pt-5 pb-6 text-text-muted group-hover/dropzone:text-purple-500 transition-colors">
+                   <div className="w-12 h-12 rounded-full bg-surface-highlight border border-border flex items-center justify-center mb-3 group-hover/dropzone:bg-purple-500/10 group-hover/dropzone:scale-110 transition-all duration-300">
                       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                    </div>
                    <p className="text-xs font-bold uppercase tracking-wider">Click o Ctrl+V</p>

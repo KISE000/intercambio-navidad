@@ -28,23 +28,23 @@ const getPriorityConfig = (p) => {
     case 1: return { 
         icon: '🔥', 
         label: 'Alta', 
-        container: 'border-red-500/50 bg-[#0B0E14]/80 shadow-[0_0_20px_-5px_rgba(239,68,68,0.25)]', 
-        badge: 'bg-red-500/10 text-red-300 border border-red-500/30', 
+        container: 'border-red-500/50 bg-surface/80 shadow-[0_0_20px_-5px_rgba(239,68,68,0.25)]', 
+        badge: 'bg-red-500/10 text-red-500 border border-red-500/30', 
         gradient: 'bg-gradient-to-br from-red-500/5 to-transparent'
     };
     case 2: return { 
         icon: '⭐', 
         label: 'Media', 
-        container: 'border-yellow-500/40 bg-[#0B0E14]/80 shadow-[0_0_15px_-5px_rgba(234,179,8,0.2)]', 
-        badge: 'bg-yellow-500/10 text-yellow-300 border border-yellow-500/30',
+        container: 'border-yellow-500/40 bg-surface/80 shadow-[0_0_15px_-5px_rgba(234,179,8,0.2)]', 
+        badge: 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/30',
         gradient: 'bg-gradient-to-br from-yellow-500/5 to-transparent'
     };
     default: return { 
         icon: '🧊', 
         label: 'Baja', 
-        container: 'border-slate-700 bg-[#0B0E14]/80 hover:border-purple-500/40', 
-        badge: 'bg-slate-700/30 text-slate-300 border border-slate-600',
-        gradient: 'bg-gradient-to-br from-slate-800/20 to-transparent'
+        container: 'border-border bg-surface/80 hover:border-purple-500/40', 
+        badge: 'bg-slate-500/10 text-slate-500 border border-slate-500/30',
+        gradient: 'bg-gradient-to-br from-slate-800/5 to-transparent'
     };
   }
 };
@@ -102,7 +102,7 @@ const MemoizedWishCardItem = memo(function WishCardItem({ wish, isMine, onEdit, 
   if (isHidden && !isMine) return null;
 
   const contentPadding = wish.image_url ? 'pt-4' : 'pt-12';
-  const opacityClass = isHidden ? 'opacity-60 grayscale-[0.8] border-dashed border-slate-700' : '';
+  const opacityClass = isHidden ? 'opacity-60 grayscale-[0.8] border-dashed border-border' : '';
 
   return (
     <div className={`relative backdrop-blur-md border rounded-3xl overflow-hidden group hover:translate-y-[-2px] transition-all duration-300 flex flex-col h-full ${priority.container} ${opacityClass}`}>
@@ -116,7 +116,7 @@ const MemoizedWishCardItem = memo(function WishCardItem({ wish, isMine, onEdit, 
         >
           <div className="flex gap-1">
              {[...Array(6)].map((_, i) => (
-               <div key={i} className="w-1 h-1 rounded-full bg-white/20 group-hover/handle:bg-white/50 transition-colors"></div>
+               <div key={i} className="w-1 h-1 rounded-full bg-text-muted/20 group-hover/handle:bg-text-muted/50 transition-colors"></div>
              ))}
           </div>
         </button>
@@ -130,23 +130,22 @@ const MemoizedWishCardItem = memo(function WishCardItem({ wish, isMine, onEdit, 
             </span>
         )}
         {wish.price && (
-            <span className="bg-[#0B0E14]/90 text-emerald-400 border border-emerald-500/30 text-[10px] font-mono font-bold px-2 py-1 rounded-lg backdrop-blur-md self-start flex items-center gap-1">
+            <span className="bg-surface/90 text-emerald-500 border border-emerald-500/30 text-[10px] font-mono font-bold px-2 py-1 rounded-lg backdrop-blur-md self-start flex items-center gap-1">
                💲 {wish.price}
             </span>
         )}
       </div>
 
-      {/* --- MENU DE OPCIONES (MEJORADO) --- */}
+      {/* --- MENU DE OPCIONES --- */}
       <div className="absolute top-3 right-3 z-50 flex items-center gap-2">
         {isMine && (
             <div className="relative">
-                {/* Trigger Button Mejorado: 48px hitbox, Icono SVG, Hover Glow */}
                 <button 
                     onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
                     className={`w-12 h-12 flex items-center justify-center rounded-full transition-all duration-200 border group/btn
                       ${showMenu 
                         ? 'bg-purple-500 text-white border-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.4)]' 
-                        : 'bg-black/40 text-slate-300 border-white/5 hover:bg-white/10 hover:text-white hover:border-white/20'
+                        : 'bg-black/10 text-text-muted border-border hover:bg-surface-highlight hover:text-text-main hover:border-text-muted/30'
                       } backdrop-blur-md`}
                     aria-label="Opciones"
                 >
@@ -155,30 +154,28 @@ const MemoizedWishCardItem = memo(function WishCardItem({ wish, isMine, onEdit, 
                     </svg>
                 </button>
                 
-                {/* Dropdown Menu Estilizado */}
                 {showMenu && (
                     <>
-                        {/* Backdrop invisible para cerrar al hacer clic fuera */}
                         <div className="fixed inset-0 z-[49]" onClick={(e) => { e.stopPropagation(); setShowMenu(false); }}></div>
                         
-                        <div className="absolute right-0 top-full mt-2 w-44 bg-[#1A1F2E]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-[50] overflow-hidden flex flex-col py-1 animate-in fade-in slide-in-from-top-2 duration-200 ring-1 ring-white/5">
+                        <div className="absolute right-0 top-full mt-2 w-44 glass-menu rounded-xl z-[50] overflow-hidden flex flex-col py-1 animate-in fade-in slide-in-from-top-2 duration-200">
                             <button 
                               onClick={(e) => { e.stopPropagation(); onToggleHidden(wish); setShowMenu(false); }} 
-                              className="w-full px-4 py-3 text-left text-xs text-slate-300 hover:bg-purple-500/10 hover:text-purple-200 flex items-center gap-3 border-b border-white/5 transition-colors active:scale-[0.98]"
+                              className="menu-item border-b border-border"
                             >
                                 <span className="text-base">{isHidden ? '👁️' : '🕶️'}</span>
                                 <span className="font-medium">{isHidden ? 'Mostrar' : 'Ocultar'}</span>
                             </button>
                             <button 
                               onClick={(e) => { e.stopPropagation(); onEdit(wish); setShowMenu(false); }} 
-                              className="w-full px-4 py-3 text-left text-xs text-blue-400 hover:bg-blue-500/10 hover:text-blue-300 flex items-center gap-3 border-b border-white/5 transition-colors active:scale-[0.98]"
+                              className="menu-item border-b border-border text-blue-400 hover:text-blue-500 hover:bg-blue-500/10"
                             >
                                 <span className="text-base">✏️</span>
                                 <span className="font-medium">Editar</span>
                             </button>
                             <button 
                               onClick={(e) => { e.stopPropagation(); onDelete(wish.id); setShowMenu(false); }} 
-                              className="w-full px-4 py-3 text-left text-xs text-red-400 hover:bg-red-500/10 hover:text-red-300 flex items-center gap-3 transition-colors active:scale-[0.98]"
+                              className="menu-item text-red-400 hover:text-red-500 hover:bg-red-500/10"
                             >
                                 <span className="text-base">🗑️</span>
                                 <span className="font-medium">Borrar</span>
@@ -192,7 +189,7 @@ const MemoizedWishCardItem = memo(function WishCardItem({ wish, isMine, onEdit, 
 
       {/* Imagen */}
       <div 
-          className="relative h-56 overflow-hidden cursor-pointer group/img shrink-0 mt-4 mx-4 rounded-2xl border border-white/5 shadow-inner bg-[#050608] p-2 z-10"
+          className="relative h-56 overflow-hidden cursor-pointer group/img shrink-0 mt-4 mx-4 rounded-2xl border border-border shadow-inner bg-background p-2 z-10"
           onClick={() => wish.image_url && onImageClick(wish.image_url)}
           onPointerDown={(e) => e.stopPropagation()} 
         >
@@ -205,7 +202,7 @@ const MemoizedWishCardItem = memo(function WishCardItem({ wish, isMine, onEdit, 
           ) : (
               <div className="w-full h-full flex flex-col items-center justify-center opacity-30">
                   <div className="text-4xl mb-2">🎁</div>
-                  <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500">No Image Data</span>
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-text-muted">No Image Data</span>
               </div>
           )}
           
@@ -230,10 +227,10 @@ const MemoizedWishCardItem = memo(function WishCardItem({ wish, isMine, onEdit, 
             {isHidden && (
                 <span className="text-[9px] font-bold bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700 uppercase">👁️‍🗨️ Oculto</span>
             )}
-            {tag && <span className="text-[9px] font-bold bg-white/5 text-slate-400 px-2 py-0.5 rounded border border-white/5 uppercase">{tag}</span>}
+            {tag && <span className="text-[9px] font-bold bg-surface-highlight text-text-muted px-2 py-0.5 rounded border border-border uppercase">{tag}</span>}
         </div>
 
-        <h3 className="font-bold text-lg text-white leading-tight break-words drop-shadow-sm mb-2">
+        <h3 className="font-bold text-lg text-text-main leading-tight break-words drop-shadow-sm mb-2">
             {wish.title}
         </h3>
         
@@ -244,30 +241,30 @@ const MemoizedWishCardItem = memo(function WishCardItem({ wish, isMine, onEdit, 
                    e.stopPropagation(); 
                    setIsExpanded(!isExpanded); 
                 }}
-                className={`text-slate-400 text-sm leading-relaxed whitespace-pre-wrap break-words cursor-pointer transition-all select-none ${isExpanded ? '' : 'line-clamp-4 hover:text-slate-300'}`}
+                className={`text-text-muted text-sm leading-relaxed whitespace-pre-wrap break-words cursor-pointer transition-all select-none ${isExpanded ? '' : 'line-clamp-4 hover:text-text-main'}`}
               >
                 {wish.details}
               </p>
             ) : (
-                <p className="text-slate-600 text-xs italic">Sin detalles adicionales.</p>
+                <p className="text-text-muted/60 text-xs italic">Sin detalles adicionales.</p>
             )}
         </div>
 
-        <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between gap-3">
+        <div className="mt-auto pt-4 border-t border-border flex items-center justify-between gap-3">
           <div className="flex-1 flex flex-col">
             {wish.link && (
               <a 
                 href={wish.link} 
                 target="_blank" 
                 rel="noopener noreferrer" 
-                className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-purple-400 transition-colors group/link mb-1"
+                className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-purple-500 transition-colors group/link mb-1"
                 onPointerDown={(e) => e.stopPropagation()} 
               >
                 {favicon ? <img src={favicon} alt="icon" className="w-3 h-3 rounded-sm" /> : <span>🔗</span>}
                 Ver Enlace
               </a>
             )}
-            <span className="text-[9px] text-slate-600 font-mono">Añadido {relativeDate}</span>
+            <span className="text-[9px] text-text-muted/80 font-mono">Añadido {relativeDate}</span>
           </div>
         </div>
       </div>
@@ -464,8 +461,8 @@ export default function WishList({ wishes, currentUser, onDelete }) {
     <>
       {mounted && editingWish && createPortal(
         <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setEditingWish(null)}>
-          <div className="bg-[#151923] border border-white/10 w-full max-w-lg rounded-3xl p-8 shadow-2xl relative" onClick={e => e.stopPropagation()}>
-            <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">✏️ Editar Deseo</h3>
+          <div className="bg-surface border border-border w-full max-w-lg rounded-3xl p-8 shadow-2xl relative" onClick={e => e.stopPropagation()}>
+            <h3 className="text-2xl font-bold text-text-main mb-6 flex items-center gap-2">✏️ Editar Deseo</h3>
             <form onSubmit={handleUpdate} className="space-y-5">
               <div>
                 <label className="input-label">Título</label>
@@ -489,8 +486,8 @@ export default function WishList({ wishes, currentUser, onDelete }) {
                     <input className="cyber-input" placeholder="https://..." value={formData.link} onChange={(e) => setFormData({...formData, link: e.target.value})} />
                  </div>
               </div>
-              <div className="flex gap-3 mt-8 pt-4 border-t border-white/5">
-                <button type="button" onClick={() => setEditingWish(null)} className="flex-1 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-slate-300 hover:bg-slate-800 transition-colors font-bold text-xs uppercase tracking-wide">Cancelar</button>
+              <div className="flex gap-3 mt-8 pt-4 border-t border-border">
+                <button type="button" onClick={() => setEditingWish(null)} className="flex-1 py-3 rounded-xl bg-surface-highlight border border-border text-text-muted hover:bg-surface transition-colors font-bold text-xs uppercase tracking-wide">Cancelar</button>
                 <button type="submit" disabled={loadingEdit} className="flex-1 py-3 rounded-xl bg-purple-600 text-white font-bold hover:bg-purple-500 transition-colors disabled:opacity-50 text-xs uppercase tracking-wide shadow-lg shadow-purple-500/20">{loadingEdit ? 'Guardando...' : 'Guardar Cambios'}</button>
               </div>
             </form>
@@ -518,20 +515,20 @@ export default function WishList({ wishes, currentUser, onDelete }) {
             return (
               <Fragment key={userGroup.id}>
                 <div className="col-span-full mt-6 first:mt-0">
-                    <button onClick={() => toggleGroup(userGroup.id)} className={`w-full flex items-center justify-between p-3 pl-4 pr-5 rounded-2xl border transition-all duration-300 group ${isOpen ? 'bg-purple-500/10 border-purple-500/30' : 'bg-[#151923]/60 border-white/5 hover:bg-[#1A1F2E] hover:border-white/10'}`}>
+                    <button onClick={() => toggleGroup(userGroup.id)} className={`w-full flex items-center justify-between p-3 pl-4 pr-5 rounded-2xl border transition-all duration-300 group ${isOpen ? 'bg-purple-500/10 border-purple-500/30' : 'bg-surface/60 border-border hover:bg-surface-highlight hover:border-text-muted/20'}`}>
                       <div className="flex items-center gap-4">
-                          <Avatar seed={userGroup.avatarSeed} style={userGroup.avatarStyle} size="lg" className="ring-2 ring-offset-2 ring-offset-[#0B0E14] ring-transparent group-hover:ring-purple-500/50 transition-all" />
+                          <Avatar seed={userGroup.avatarSeed} style={userGroup.avatarStyle} size="lg" className="ring-2 ring-offset-2 ring-offset-background ring-transparent group-hover:ring-purple-500/50 transition-all" />
                           <div className="text-left">
-                              <h3 className={`text-lg font-bold transition-colors tracking-tight ${isOpen ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>{userGroup.name}</h3>
-                              <p className="text-[10px] text-slate-500 font-mono uppercase tracking-widest flex items-center gap-2 mt-0.5">
+                              <h3 className={`text-lg font-bold transition-colors tracking-tight ${isOpen ? 'text-text-main' : 'text-text-muted group-hover:text-text-main'}`}>{userGroup.name}</h3>
+                              <p className="text-[10px] text-text-muted font-mono uppercase tracking-widest flex items-center gap-2 mt-0.5">
                                   <span>{userGroup.wishes.length} deseo{userGroup.wishes.length !== 1 ? 's' : ''}</span>
                                   {isMyGroup && <span className="text-purple-400 font-bold bg-purple-500/10 px-2 rounded-full hidden sm:inline-block">TU LISTA</span>}
                               </p>
                           </div>
                       </div>
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center border border-white/10 transition-all duration-300 ${isOpen ? 'bg-white text-black rotate-180' : 'bg-black/20 text-slate-400 group-hover:bg-white/10 group-hover:text-white'}`}>▼</div>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center border border-border transition-all duration-300 ${isOpen ? 'bg-text-main text-background rotate-180' : 'bg-background text-text-muted group-hover:bg-surface-highlight group-hover:text-text-main'}`}>▼</div>
                     </button>
-                    {isOpen && userGroup.wishes.length === 0 && <div className="text-center py-10 text-slate-500 text-sm border-2 border-dashed border-white/5 rounded-2xl mt-4 bg-white/[0.02]">No hay deseos visibles aquí.</div>}
+                    {isOpen && userGroup.wishes.length === 0 && <div className="text-center py-10 text-text-muted text-sm border-2 border-dashed border-border rounded-2xl mt-4 bg-background/[0.02]">No hay deseos visibles aquí.</div>}
                 </div>
 
                 {isOpen && (

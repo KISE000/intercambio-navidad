@@ -1,4 +1,4 @@
-import { Inter, Space_Grotesk } from 'next/font/google' // <--- 1. IMPORTAR FUENTES
+import { Inter, Space_Grotesk } from 'next/font/google' 
 import './globals.css'
 import { Toaster } from 'sonner'
 
@@ -28,7 +28,7 @@ export default function RootLayout({ children }) {
     <html lang="es" className={`${inter.variable} ${spaceGrotesk.variable}`}>
       <body suppressHydrationWarning={true} className="font-sans antialiased">
         {children}
-        <Toaster position="top-center" richColors theme="dark" />
+        <Toaster position="top-center" richColors />
       </body>
     </html>
   );

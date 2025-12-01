@@ -3,12 +3,18 @@ module.exports = {
   content: [
     "./src/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  darkMode: 'class', // Habilitamos modo manual por si acaso
   theme: {
     extend: {
       colors: {
+        // Mapeamos a variables CSS para cambio dinámico
         background: "var(--bg-app)",
-        card: "var(--bg-card)", 
+        surface: "var(--bg-card)",
+        "surface-highlight": "var(--bg-card-highlight)",
+        border: "var(--border-color)",
         primary: "var(--primary)",
+        "text-main": "var(--text-main)",
+        "text-muted": "var(--text-muted)",
       },
       animation: {
         'fall': 'fall 10s linear infinite',
