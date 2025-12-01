@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { toast } from 'sonner'
+import confetti from 'canvas-confetti' // 🛑 Importamos el confeti
 
 export default function WishForm({ session, onWishAdded, currentWishes, groupId }) {
   const [title, setTitle] = useState('')
@@ -17,7 +18,34 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
   const myWishesCount = currentWishes.filter(w => w.user_id === session?.user?.id).length
   const isLimitReached = myWishesCount >= 10
 
-  // Efecto para crear/limpiar la URL de preview local
+  // --- 3. PASTE IMAGE LOGIC ---
+  useEffect(() => {
+    const handlePaste = (e) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (const item of items) {
+        if (item.type.indexOf('image') !== -1) {
+          e.preventDefault(); // Evitar doble pegado si el foco está en un input
+          const blob = item.getAsFile();
+          
+          if (blob.size > 2 * 1024 * 1024) {
+            toast.warning("La imagen del portapapeles es muy grande (Max 2MB)");
+            return;
+          }
+          
+          setImageFile(blob);
+          toast.success("📸 Imagen pegada del portapapeles");
+          break;
+        }
+      }
+    };
+
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, []);
+
+  // Efecto para preview de imagen
   useEffect(() => {
     if (imageFile) {
       const objectUrl = URL.createObjectURL(imageFile)
@@ -40,10 +68,48 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
   }
 
   const clearImage = (e) => {
-    e.preventDefault();
+    if(e) e.preventDefault();
     setImageFile(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
+
+  // --- 4. LINK DETECTOR HELPER ---
+  const getFavicon = (url) => {
+    try {
+      const domain = new URL(url).hostname;
+      return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
+    } catch {
+      return null;
+    }
+  };
+  const validLinkIcon = link ? getFavicon(link) : null;
+
+  // --- 5. SUCCESS MICRO-INTERACTION ---
+  const triggerConfetti = () => {
+    const end = Date.now() + 1000;
+    const colors = ['#a786ff', '#fd8bbc', '#eca184', '#f8deb1'];
+
+    (function frame() {
+      confetti({
+        particleCount: 2,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0 },
+        colors: colors
+      });
+      confetti({
+        particleCount: 2,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1 },
+        colors: colors
+      });
+
+      if (Date.now() < end) {
+        requestAnimationFrame(frame);
+      }
+    }());
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -55,7 +121,7 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
 
     try {
       if (imageFile) {
-        const fileExt = imageFile.name.split('.').pop();
+        const fileExt = imageFile.name ? imageFile.name.split('.').pop() : 'png'; // Fallback para clipboard
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
         const filePath = `${session.user.id}/${fileName}`;
 
@@ -81,10 +147,13 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
 
       if (dbError) throw dbError;
 
+      // Reset y Feedback
       setTitle(''); setDetails(''); setLink(''); setPriority('2'); setImageFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
       
-      toast.success("Deseo agregado correctamente");
+      triggerConfetti(); // 🎉
+      toast.success("¡Deseo agregado con éxito!");
+      
       if (onWishAdded) onWishAdded();
 
     } catch (error) {
@@ -93,6 +162,13 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
       setLoading(false);
     }
   }
+
+  // --- 2. PRIORITY VISUAL CONFIG ---
+  const priorities = [
+    { id: '1', label: '🔥 Alta', desc: '¡Lo necesito!', style: 'border-red-500/50 bg-red-500/10 text-red-300 shadow-[0_0_15px_rgba(239,68,68,0.2)] hover:bg-red-500/20' },
+    { id: '2', label: '⭐ Media', desc: 'Me haría feliz', style: 'border-yellow-500/50 bg-yellow-500/10 text-yellow-300 shadow-[0_0_15px_rgba(234,179,8,0.2)] hover:bg-yellow-500/20' },
+    { id: '3', label: '🧊 Baja', desc: 'Estaría bien', style: 'border-blue-500/50 bg-blue-500/10 text-blue-300 shadow-[0_0_15px_rgba(59,130,246,0.2)] hover:bg-blue-500/20' },
+  ];
 
   return (
     <div className="relative group max-w-2xl mx-auto">
@@ -124,22 +200,54 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
                 onChange={(e) => setTitle(e.target.value)}
                 maxLength={50}
                 required
+                autoFocus
               />
             </div>
+            
+            {/* LINK INTELIGENTE */}
             <div className="space-y-2">
-              <label className="input-label">Prioridad</label>
+              <label className="input-label flex justify-between">
+                  <span>Link de Referencia</span>
+                  {validLinkIcon && <span className="text-[10px] text-green-400 font-mono animate-pulse">● Link Detectado</span>}
+              </label>
               <div className="relative">
-                <select
-                  className="cyber-input appearance-none cursor-pointer"
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value)}
-                >
-                  <option value="1">🔥 Alta (¡Lo necesito!)</option>
-                  <option value="2">⭐ Media (Me haría feliz)</option>
-                  <option value="3">🧊 Baja (Estaría bien)</option>
-                </select>
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 text-xs">▼</div>
+                  <input
+                    type="url"
+                    placeholder="https://amazon.com/..."
+                    className={`cyber-input ${validLinkIcon ? 'pl-10 border-green-500/30' : ''}`}
+                    value={link}
+                    onChange={(e) => setLink(e.target.value)}
+                  />
+                  {validLinkIcon && (
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full overflow-hidden bg-white p-0.5">
+                          <img src={validLinkIcon} alt="Icon" className="w-full h-full object-cover" />
+                      </div>
+                  )}
               </div>
+            </div>
+          </div>
+
+          {/* PRIORIDAD VISUAL (CHIPS) */}
+          <div className="space-y-2">
+            <label className="input-label">Nivel de Prioridad</label>
+            <div className="grid grid-cols-3 gap-3">
+                {priorities.map((p) => (
+                    <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setPriority(p.id)}
+                        className={`
+                            relative flex flex-col items-center justify-center py-3 px-2 rounded-xl border transition-all duration-300
+                            ${priority === p.id 
+                                ? `${p.style} scale-[1.02] ring-1 ring-white/20` 
+                                : 'bg-[#0B0E14]/50 border-white/5 text-slate-500 hover:bg-[#1A1F2E] hover:border-white/10'
+                            }
+                        `}
+                    >
+                        <span className="text-sm font-bold">{p.label}</span>
+                        <span className="text-[9px] mt-1 opacity-70 hidden md:block">{p.desc}</span>
+                    </button>
+                ))}
             </div>
           </div>
 
@@ -147,26 +255,18 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
             <label className="input-label">Detalles / Talla / Color</label>
             <textarea
               placeholder="Talla M, color negro mate, modelo 2024..."
-              className="cyber-input resize-none h-28"
+              className="cyber-input resize-none h-24"
               value={details}
               onChange={(e) => setDetails(e.target.value)}
             />
           </div>
 
+          {/* Área de Imagen con Preview Mejorado & Paste Support */}
           <div className="space-y-2">
-            <label className="input-label">Link de Referencia (Opcional)</label>
-            <input
-              type="url"
-              placeholder="https://amazon.com/..."
-              className="cyber-input text-blue-400 underline-offset-2"
-              value={link}
-              onChange={(e) => setLink(e.target.value)}
-            />
-          </div>
-
-          {/* Área de Imagen con Preview Mejorado */}
-          <div className="space-y-2">
-            <label className="input-label">Imagen (Opcional)</label>
+            <label className="input-label flex justify-between">
+                <span>Imagen (Opcional)</span>
+                <span className="text-[9px] text-slate-500 normal-case bg-white/5 px-2 py-0.5 rounded">Tip: Puedes pegar (Ctrl+V) una imagen aquí</span>
+            </label>
             <label 
               className={`flex flex-col items-center justify-center w-full h-40 border border-dashed rounded-2xl cursor-pointer transition-all duration-300 relative overflow-hidden group/dropzone ${
                 imagePreview
@@ -191,7 +291,7 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
                    <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-3 group-hover/dropzone:bg-purple-500/10 group-hover/dropzone:scale-110 transition-all duration-300">
                       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                    </div>
-                   <p className="text-xs font-bold uppercase tracking-wider">Click para subir foto</p>
+                   <p className="text-xs font-bold uppercase tracking-wider">Click o Ctrl+V</p>
                    <p className="text-[10px] opacity-60 mt-1">Max 2MB</p>
                 </div>
               )}
