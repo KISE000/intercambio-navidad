@@ -11,7 +11,7 @@ import WishListSkeleton from '../components/WishListSkeleton';
 import GroupSelector from '../components/GroupSelector';
 import Avatar from '../components/Avatar'; 
 import AvatarSelector from '../components/AvatarSelector'; 
-// 🛑 Removed: GroupMembersModal import
+// 🛑 Eliminado: Importación de GroupMembersModal
 import GroupSettingsModal from '../components/GroupSettingsModal';
 import ShareTicketModal from '../components/ShareTicketModal'; 
 
@@ -31,7 +31,7 @@ export default function Home() {
   
   // Modals
   const [isAvatarSelectorOpen, setIsAvatarSelectorOpen] = useState(false);
-  // 🛑 Removed: isMembersModalOpen state
+  // 🛑 Eliminado: Estado isMembersModalOpen
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isTicketOpen, setIsTicketOpen] = useState(false);
   const [isThemeSettingsOpen, setIsThemeSettingsOpen] = useState(false);
@@ -41,7 +41,7 @@ export default function Home() {
   const getUserAvatarStyle = () => session?.user?.user_metadata?.avatar_style || 'robot';
   const getUserAvatarSeed = () => session?.user?.user_metadata?.avatar_seed || session?.user?.email;
 
-  // --- 1. Snow Effect ---
+  // --- 1. Efecto de Nieve ---
   useEffect(() => {
     const flakes = Array.from({ length: 50 }).map((_, i) => ({
       id: i,
@@ -74,7 +74,7 @@ export default function Home() {
     </div>
   );
 
-  // --- 2. Supabase Logic ---
+  // --- 2. Lógica Supabase (OPTIMIZADA) ---
   const fetchWishes = useCallback(async () => {
     if (!selectedGroup || !session) return;
     
@@ -96,7 +96,7 @@ export default function Home() {
         setWishes(data || []);
       }
     } catch (err) {
-      console.error('❌ Exception in fetchWishes:', err);
+      console.error('❌ Excepción en fetchWishes:', err);
       toast.error('Error de red al cargar deseos');
       setWishes([]);
     } finally {
@@ -221,7 +221,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Mobile Trigger */}
+        {/* Móvil Trigger */}
         <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden relative group outline-none">
           <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full opacity-0 group-active:opacity-50 transition duration-200 blur"></div>
           <Avatar seed={getUserAvatarSeed()} style={getUserAvatarStyle()} size="md" className="relative" />
@@ -267,7 +267,6 @@ export default function Home() {
                                <span className="menu-icon-box text-cyan-400 group-hover:bg-cyan-500/20 group-hover:text-cyan-300">⚙️</span> 
                                <span>Panel Admin</span>
                            </button>
-                           {/* 🛑 Members management moved to Admin Panel */}
                            <div className="h-px bg-white/5 my-1 mx-2"></div>
                        </>
                    )}
@@ -314,7 +313,7 @@ export default function Home() {
         </div>
       </header>
 
-      {/* MOBILE MENU */}
+      {/* MENÚ MÓVIL */}
       {isMobileMenuOpen && (
         <>
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] animate-in fade-in duration-200" onClick={() => setIsMobileMenuOpen(false)} />
@@ -358,7 +357,6 @@ export default function Home() {
                         <span className="menu-icon-box text-xl text-cyan-400">⚙️</span>
                         <span className="text-base">Panel Admin</span>
                     </button>
-                    {/* 🛑 Removed separate Members button */}
                 </>
               )}
 
@@ -532,8 +530,6 @@ export default function Home() {
           fetchWishes();
         }}
       />
-
-      {/* 🛑 Eliminado: GroupMembersModal */}
 
       <GroupSettingsModal 
         isOpen={isSettingsModalOpen}
