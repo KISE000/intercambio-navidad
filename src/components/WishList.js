@@ -43,7 +43,7 @@ const getPriorityConfig = (p) => {
         icon: '🧊', 
         label: 'Baja', 
         container: 'border-border bg-surface/80 hover:border-purple-500/40', 
-        badge: 'bg-slate-500/10 text-slate-500 border border-slate-500/30',
+        badge: 'bg-slate-500/10 text-slate-500 border border-slate-500/30', 
         gradient: 'bg-gradient-to-br from-slate-800/5 to-transparent'
     };
   }
@@ -187,7 +187,7 @@ const MemoizedWishCardItem = memo(function WishCardItem({ wish, isMine, onEdit, 
         )}
       </div>
 
-      {/* Imagen */}
+      {/* Imagen (O Placeholder Pro) */}
       <div 
           className="relative h-56 overflow-hidden cursor-pointer group/img shrink-0 mt-4 mx-4 rounded-2xl border border-border shadow-inner bg-background p-2 z-10"
           onClick={() => wish.image_url && onImageClick(wish.image_url)}
@@ -200,9 +200,15 @@ const MemoizedWishCardItem = memo(function WishCardItem({ wish, isMine, onEdit, 
                 className="w-full h-full object-contain transition-transform duration-700 group-hover/img:scale-110"
               />
           ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center opacity-30">
-                  <div className="text-4xl mb-2">🎁</div>
-                  <span className="text-[10px] font-mono uppercase tracking-widest text-text-muted">No Image Data</span>
+              // --- PLACEHOLDER PREMIUM ---
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-500/5 to-blue-500/5 relative group-hover/img:scale-105 transition-transform duration-500">
+                  {/* Patrón de fondo sutil */}
+                  <div className="absolute inset-0 opacity-20 bg-[radial-gradient(var(--text-muted)_1px,transparent_1px)] [background-size:16px_16px]"></div>
+                  
+                  {/* Icono central con efecto */}
+                  <div className="text-5xl filter drop-shadow-lg opacity-60 group-hover/img:opacity-100 group-hover/img:scale-110 transition-all duration-300 transform">
+                      🎁
+                  </div>
               </div>
           )}
           
