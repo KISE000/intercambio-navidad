@@ -1,4 +1,4 @@
-import { useState, Fragment, useEffect, cloneElement, memo, useRef } from 'react';
+import { useState, Fragment, useEffect, cloneElement, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabaseClient';
 import { toast } from 'sonner';
@@ -29,7 +29,7 @@ const getPriorityConfig = (p) => {
         icon: '🔥', 
         label: 'Alta', 
         container: 'border-red-500/50 bg-[#0B0E14]/80 shadow-[0_0_20px_-5px_rgba(239,68,68,0.25)]', 
-        badge: 'bg-red-500/10 text-red-300 border border-red-500/30', // Ajuste para fondo oscuro
+        badge: 'bg-red-500/10 text-red-300 border border-red-500/30', 
         gradient: 'bg-gradient-to-br from-red-500/5 to-transparent'
     };
     case 2: return { 
@@ -101,7 +101,6 @@ const MemoizedWishCardItem = memo(function WishCardItem({ wish, isMine, onEdit, 
 
   if (isHidden && !isMine) return null;
 
-  // Ajustamos padding: si no hay imagen, necesitamos más espacio arriba
   const contentPadding = wish.image_url ? 'pt-4' : 'pt-12';
   const opacityClass = isHidden ? 'opacity-60 grayscale-[0.8] border-dashed border-slate-700' : '';
 
@@ -123,7 +122,7 @@ const MemoizedWishCardItem = memo(function WishCardItem({ wish, isMine, onEdit, 
         </button>
       )}
 
-      {/* Badges Left (Solo Nuevo y Precio sobre la imagen) */}
+      {/* Badges Left */}
       <div className="absolute top-4 left-4 z-20 flex flex-col gap-2 pointer-events-none">
         {showNewBadge && !isHidden && (
             <span className="bg-purple-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg shadow-lg shadow-purple-500/30 animate-pulse tracking-wide self-start">
@@ -137,31 +136,50 @@ const MemoizedWishCardItem = memo(function WishCardItem({ wish, isMine, onEdit, 
         )}
       </div>
 
-      {/* Badges Right (Solo Menú sobre la imagen) */}
-      <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+      {/* --- MENU DE OPCIONES (MEJORADO) --- */}
+      <div className="absolute top-3 right-3 z-50 flex items-center gap-2">
         {isMine && (
             <div className="relative">
+                {/* Trigger Button Mejorado: 48px hitbox, Icono SVG, Hover Glow */}
                 <button 
                     onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-                    className="w-10 h-10 flex items-center justify-center rounded-full bg-black/40 hover:bg-white/20 text-white transition-all backdrop-blur-md shadow-sm active:scale-95 border border-white/5"
+                    className={`w-12 h-12 flex items-center justify-center rounded-full transition-all duration-200 border group/btn
+                      ${showMenu 
+                        ? 'bg-purple-500 text-white border-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.4)]' 
+                        : 'bg-black/40 text-slate-300 border-white/5 hover:bg-white/10 hover:text-white hover:border-white/20'
+                      } backdrop-blur-md`}
                     aria-label="Opciones"
                 >
-                    <span className="text-xl font-bold mb-1 leading-none tracking-widest">•••</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>
+                    </svg>
                 </button>
                 
+                {/* Dropdown Menu Estilizado */}
                 {showMenu && (
                     <>
-                        <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)}></div>
-                        <div className="absolute right-0 top-full mt-2 w-36 bg-[#1A1F2E] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col py-1 animate-in fade-in zoom-in-95 duration-200">
-                            <button onClick={(e) => { e.stopPropagation(); onToggleHidden(wish); setShowMenu(false); }} className="px-4 py-3 text-left text-xs text-slate-300 hover:bg-white/5 hover:text-white flex items-center gap-3 border-b border-white/5">
+                        {/* Backdrop invisible para cerrar al hacer clic fuera */}
+                        <div className="fixed inset-0 z-[49]" onClick={(e) => { e.stopPropagation(); setShowMenu(false); }}></div>
+                        
+                        <div className="absolute right-0 top-full mt-2 w-44 bg-[#1A1F2E]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-[50] overflow-hidden flex flex-col py-1 animate-in fade-in slide-in-from-top-2 duration-200 ring-1 ring-white/5">
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); onToggleHidden(wish); setShowMenu(false); }} 
+                              className="w-full px-4 py-3 text-left text-xs text-slate-300 hover:bg-purple-500/10 hover:text-purple-200 flex items-center gap-3 border-b border-white/5 transition-colors active:scale-[0.98]"
+                            >
                                 <span className="text-base">{isHidden ? '👁️' : '🕶️'}</span>
                                 <span className="font-medium">{isHidden ? 'Mostrar' : 'Ocultar'}</span>
                             </button>
-                            <button onClick={(e) => { e.stopPropagation(); onEdit(wish); setShowMenu(false); }} className="px-4 py-3 text-left text-xs text-blue-400 hover:bg-white/5 flex items-center gap-3 border-b border-white/5">
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); onEdit(wish); setShowMenu(false); }} 
+                              className="w-full px-4 py-3 text-left text-xs text-blue-400 hover:bg-blue-500/10 hover:text-blue-300 flex items-center gap-3 border-b border-white/5 transition-colors active:scale-[0.98]"
+                            >
                                 <span className="text-base">✏️</span>
                                 <span className="font-medium">Editar</span>
                             </button>
-                            <button onClick={(e) => { e.stopPropagation(); onDelete(wish.id); setShowMenu(false); }} className="px-4 py-3 text-left text-xs text-red-400 hover:bg-white/5 flex items-center gap-3">
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); onDelete(wish.id); setShowMenu(false); }} 
+                              className="w-full px-4 py-3 text-left text-xs text-red-400 hover:bg-red-500/10 hover:text-red-300 flex items-center gap-3 transition-colors active:scale-[0.98]"
+                            >
                                 <span className="text-base">🗑️</span>
                                 <span className="font-medium">Borrar</span>
                             </button>
@@ -200,23 +218,18 @@ const MemoizedWishCardItem = memo(function WishCardItem({ wish, isMine, onEdit, 
           )}
       </div>
 
-      {/* Contenido (Aquí movimos la prioridad) */}
+      {/* Contenido */}
       <div className={`px-6 pb-6 flex flex-col flex-1 relative z-10 ${contentPadding}`}>
         
-        {/* NUEVA FILA DE META-DATOS (Prioridad y Tags) */}
+        {/* Meta-datos */}
         <div className="flex flex-wrap items-center gap-2 mb-3">
-            {/* Badge de Prioridad (Movido aquí) */}
             <div className={`${priority.badge} text-[9px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 uppercase tracking-wider`}>
                 <span>{priority.icon}</span>
                 <span>{priority.label}</span>
             </div>
-
-            {/* Badge Oculto (Movido aquí) */}
             {isHidden && (
                 <span className="text-[9px] font-bold bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700 uppercase">👁️‍🗨️ Oculto</span>
             )}
-
-            {/* Tag Detectado */}
             {tag && <span className="text-[9px] font-bold bg-white/5 text-slate-400 px-2 py-0.5 rounded border border-white/5 uppercase">{tag}</span>}
         </div>
 

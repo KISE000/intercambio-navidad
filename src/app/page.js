@@ -11,7 +11,6 @@ import WishListSkeleton from '../components/WishListSkeleton';
 import GroupSelector from '../components/GroupSelector';
 import Avatar from '../components/Avatar'; 
 import AvatarSelector from '../components/AvatarSelector'; 
-// 🛑 Eliminado: Importación de GroupMembersModal
 import GroupSettingsModal from '../components/GroupSettingsModal';
 import ShareTicketModal from '../components/ShareTicketModal'; 
 
@@ -31,7 +30,6 @@ export default function Home() {
   
   // Modals
   const [isAvatarSelectorOpen, setIsAvatarSelectorOpen] = useState(false);
-  // 🛑 Eliminado: Estado isMembersModalOpen
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isTicketOpen, setIsTicketOpen] = useState(false);
   const [isThemeSettingsOpen, setIsThemeSettingsOpen] = useState(false);
@@ -74,7 +72,15 @@ export default function Home() {
     </div>
   );
 
-  // --- 2. Lógica Supabase (OPTIMIZADA) ---
+  // --- 2. UX: Scroll Reset al entrar a Grupo (FIX SOLICITADO) ---
+  useEffect(() => {
+    if (selectedGroup) {
+      // Forzamos al navegador a ir arriba instantáneamente
+      window.scrollTo(0, 0);
+    }
+  }, [selectedGroup]);
+
+  // --- 3. Lógica Supabase (OPTIMIZADA) ---
   const fetchWishes = useCallback(async () => {
     if (!selectedGroup || !session) return;
     
@@ -104,7 +110,7 @@ export default function Home() {
     }
   }, [selectedGroup, session]); 
   
-  // --- 3. Auth State Change ---
+  // --- 4. Auth State Change ---
   useEffect(() => {
     let mounted = true;
     supabase.auth.getSession().then(({ data: { session } }) => {
