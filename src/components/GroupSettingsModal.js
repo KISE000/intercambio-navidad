@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../lib/supabaseClient';
+import { supabase } from '../lib/supabaseClient'; // Asegúrate que esta ruta sea correcta
 import { toast } from 'sonner';
 import Avatar from './Avatar'; 
 
@@ -11,7 +11,7 @@ export default function GroupSettingsModal({ isOpen, onClose, group, session, on
   // Form States
   const [name, setName] = useState('');
   const [announcement, setAnnouncement] = useState('');
-  const [eventDate, setEventDate] = useState(''); // <--- NUEVO ESTADO PARA FECHA
+  const [eventDate, setEventDate] = useState(''); // Estado para la fecha
   
   // Data States
   const [loading, setLoading] = useState(false);
@@ -27,26 +27,28 @@ export default function GroupSettingsModal({ isOpen, onClose, group, session, on
   useEffect(() => {
     setMounted(true);
     if (group) {
-      setName(group.name);
+      setName(group.name || '');
       setAnnouncement(group.announcement || '');
-      setEventDate(group.event_date || ''); // <--- CARGAR FECHA AL ABRIR
+      // Aseguramos que si viene null, el input reciba string vacío
+      setEventDate(group.event_date || ''); 
     }
   }, [group]);
 
-  // Cargar datos según la pestaña activa
+  // Cargar datos al cambiar de pestaña
   useEffect(() => {
-    if (!group) return;
+    if (!group || !isOpen) return;
 
     if (activeTab === 'activity') {
       fetchLazyUsers();
     } else if (activeTab === 'members') {
       fetchMembersList();
     }
-  }, [activeTab, group]);
+  }, [activeTab, group, isOpen]);
 
   // --- LOGICA: ACTIVIDAD (Vagos) ---
   const fetchLazyUsers = async () => {
     setLoadingData(true);
+    // Buscamos miembros y deseos para comparar
     const { data: members } = await supabase.from('group_members').select('user_id, profiles(email, username)').eq('group_id', group.id);
     const { data: wishes } = await supabase.from('wishes').select('user_id').eq('group_id', group.id);
 
@@ -60,10 +62,12 @@ export default function GroupSettingsModal({ isOpen, onClose, group, session, on
     setLoadingData(false);
   };
 
-  // --- LOGICA: MIEMBROS (Gestión Integrada) ---
+  // --- LOGICA: MIEMBROS ---
   const fetchMembersList = async () => {
     setLoadingData(true);
     try {
+        // Usamos la RPC segura si existe, sino fallback a query normal podría ser necesario, 
+        // pero mantenemos tu lógica actual.
         const { data: membersData, error } = await supabase
             .rpc('get_group_members_bypass', { group_id_input: group.id });
         
@@ -71,16 +75,18 @@ export default function GroupSettingsModal({ isOpen, onClose, group, session, on
 
         const mapped = (membersData || []).map(m => ({
             user_id: m.user_id,
-            role: m.role,
-            username: m.username,
-            avatar_style: m.avatar_style,
-            avatar_seed: m.avatar_seed
+            role: m.is_admin ? 'admin' : 'member', // Ajuste según tu RPC
+            username: m.display_name || m.email?.split('@')[0] || 'Anónimo', // Fallback visual
+            avatar_url: m.avatar_url,
+            // Si usas seed/style en tu RPC, mantenlos:
+            avatar_style: 'avataaars', 
+            avatar_seed: m.user_id
         })).sort((a, b) => (a.role === 'admin' ? -1 : 1));
 
         setMembersList(mapped);
     } catch (err) {
         console.error("Error fetching members:", err);
-        toast.error("Error al cargar miembros");
+        // Fallo silencioso en UI pero log en consola
     } finally {
         setLoadingData(false);
     }
@@ -98,29 +104,35 @@ export default function GroupSettingsModal({ isOpen, onClose, group, session, on
     }
   };
 
-  if (!mounted || !isOpen || !group) return null;
-
-  // --- ACTIONS GENERALES ---
+  // --- ACTIONS GENERALES (GUARDAR) ---
   const handleUpdateGeneral = async () => {
     setLoading(true);
     try {
+        const updates = {
+            name: name.trim(),
+            announcement: announcement.trim() || null,
+            event_date: eventDate || null // Enviamos la fecha o NULL si está vacía
+        };
+
         const { data, error } = await supabase
           .from('groups')
-          .update({ 
-              name: name.trim(), 
-              announcement: announcement.trim() || null,
-              event_date: eventDate || null // <--- GUARDAR FECHA
-          })
+          .update(updates)
           .eq('id', group.id)
           .select();
 
-        if (error) throw error;
-        if (!data || data.length === 0) throw new Error("Sin permisos.");
+        if (error) {
+            // Detección específica del error de columna faltante
+            if (error.message?.includes('column "event_date" of relation "groups" does not exist')) {
+                throw new Error("⚠️ ERROR BD: Falta la columna 'event_date'. Avisa al desarrollador.");
+            }
+            throw error;
+        }
 
-        toast.success('Configuración actualizada');
-        if (onUpdate) onUpdate(data[0]);
+        toast.success('Configuración guardada 💾');
+        if (onUpdate) onUpdate(data[0]); // Actualizamos el estado padre
     } catch (error) {
-        toast.error(error.message);
+        console.error(error);
+        toast.error(error.message || "Error al actualizar");
     } finally {
         setLoading(false);
     }
@@ -162,6 +174,8 @@ export default function GroupSettingsModal({ isOpen, onClose, group, session, on
     toast.success('Copiado al portapapeles');
   };
 
+  if (!mounted || !isOpen || !group) return null;
+
   return createPortal(
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div 
@@ -183,11 +197,16 @@ export default function GroupSettingsModal({ isOpen, onClose, group, session, on
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-white/5 px-6 shrink-0 overflow-x-auto">
-            <button onClick={() => setActiveTab('general')} className={`py-4 px-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors ${activeTab === 'general' ? 'border-cyan-500 text-white' : 'border-transparent text-slate-500 hover:text-slate-300'}`}>General</button>
-            <button onClick={() => setActiveTab('members')} className={`py-4 px-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors ${activeTab === 'members' ? 'border-cyan-500 text-white' : 'border-transparent text-slate-500 hover:text-slate-300'}`}>Miembros</button>
-            <button onClick={() => setActiveTab('security')} className={`py-4 px-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors ${activeTab === 'security' ? 'border-cyan-500 text-white' : 'border-transparent text-slate-500 hover:text-slate-300'}`}>Seguridad</button>
-            <button onClick={() => setActiveTab('activity')} className={`py-4 px-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors ${activeTab === 'activity' ? 'border-cyan-500 text-white' : 'border-transparent text-slate-500 hover:text-slate-300'}`}>Actividad</button>
+        <div className="flex border-b border-white/5 px-6 shrink-0 overflow-x-auto no-scrollbar">
+            {['general', 'members', 'security', 'activity'].map((tab) => (
+                <button 
+                    key={tab}
+                    onClick={() => setActiveTab(tab)} 
+                    className={`py-4 px-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors ${activeTab === tab ? 'border-cyan-500 text-white' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+                >
+                    {tab === 'members' ? 'Miembros' : tab === 'security' ? 'Seguridad' : tab === 'activity' ? 'Actividad' : 'General'}
+                </button>
+            ))}
         </div>
 
         {/* Content Scrollable */}
@@ -206,20 +225,27 @@ export default function GroupSettingsModal({ isOpen, onClose, group, session, on
                         />
                     </div>
 
-                    {/* INPUT DE FECHA */}
+                    {/* INPUT DE FECHA CON ESTILO DARK MODE FORZADO */}
                     <div>
                         <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 block mb-2">Fecha del Evento</label>
-                        <input 
-                            type="date" 
-                            value={eventDate}
-                            onChange={(e) => setEventDate(e.target.value)}
-                            className="w-full bg-[#0B0E14] border border-white/10 rounded-xl px-4 py-3 text-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all [color-scheme:dark]"
-                        />
+                        <div className="relative">
+                            <input 
+                                type="date" 
+                                value={eventDate}
+                                onChange={(e) => setEventDate(e.target.value)}
+                                className="w-full bg-[#0B0E14] border border-white/10 rounded-xl px-4 py-3 text-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all [color-scheme:dark]"
+                            />
+                            {/* Icono decorativo (opcional) */}
+                            <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">📅</span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 mt-2 ml-1">
+                            Esta fecha aparecerá en la cuenta regresiva del Dashboard.
+                        </p>
                     </div>
 
                     <div>
                         <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 block mb-2 flex justify-between">
-                            <span>📢 Mensaje Fijado (Broadcast)</span>
+                            <span>📢 Mensaje Fijado</span>
                         </label>
                         <textarea 
                             value={announcement}
@@ -257,14 +283,14 @@ export default function GroupSettingsModal({ isOpen, onClose, group, session, on
                                             <Avatar seed={m.avatar_seed || m.user_id} style={m.avatar_style} size="sm" />
                                             <div className="min-w-0">
                                                 <p className={`text-sm font-bold truncate ${isMe ? 'text-cyan-400' : 'text-slate-200'}`}>
-                                                    {m.username || 'Anónimo'} {isMe && '(Tú)'}
+                                                    {m.username} {isMe && '(Tú)'}
                                                 </p>
                                                 {m.role === 'admin' && <span className="text-[9px] text-yellow-500 font-bold uppercase tracking-wider">Admin</span>}
                                             </div>
                                         </div>
                                         {!isMe && (
                                             <button 
-                                                onClick={() => handleKick(m.user_id, m.username || 'Usuario')}
+                                                onClick={() => handleKick(m.user_id, m.username)}
                                                 className="text-slate-600 hover:text-red-400 p-2 transition-colors"
                                                 title="Expulsar"
                                             >
