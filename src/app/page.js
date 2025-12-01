@@ -13,6 +13,7 @@ import Avatar from '../components/Avatar';
 import AvatarSelector from '../components/AvatarSelector'; 
 import GroupSettingsModal from '../components/GroupSettingsModal';
 import ShareTicketModal from '../components/ShareTicketModal'; 
+import RulesModal from '../components/RulesModal';
 
 export default function Home() {
   const [session, setSession] = useState(null);
@@ -35,6 +36,11 @@ export default function Home() {
   const [isAvatarSelectorOpen, setIsAvatarSelectorOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isTicketOpen, setIsTicketOpen] = useState(false);
+  const [isRulesOpen, setIsRulesOpen] = useState(false);
+  
+  // Matchmaking State
+  const [myMatch, setMyMatch] = useState(null);
+  const [isRevealed, setIsRevealed] = useState(false);
   
   const menuRef = useRef(null);
 
@@ -119,8 +125,33 @@ export default function Home() {
   useEffect(() => {
     if (selectedGroup) {
       window.scrollTo(0, 0);
+      fetchMatch();
     }
   }, [selectedGroup]);
+
+  // --- FETCH MATCH ---
+  const fetchMatch = useCallback(async () => {
+    if (!selectedGroup || !session) return;
+    try {
+        const { data, error } = await supabase
+            .from('matches')
+            .select(`
+                receiver_id,
+                profiles:receiver_id (username, avatar_style, avatar_seed)
+            `)
+            .eq('group_id', selectedGroup.id)
+            .eq('giver_id', session.user.id)
+            .maybeSingle();
+            
+        if (data && data.profiles) {
+            setMyMatch(data.profiles);
+        } else {
+            setMyMatch(null);
+        }
+    } catch (err) {
+        console.log('Tabla matches aún no configurada o sin datos.');
+    }
+  }, [selectedGroup, session]);
 
   const fetchWishes = useCallback(async () => {
     if (!selectedGroup || !session) return;
@@ -162,7 +193,7 @@ export default function Home() {
         return; 
       }
       setSession(session);
-      if (!session) { setSelectedGroup(null); setWishes([]); }
+      if (!session) { setSelectedGroup(null); setWishes([]); setMyMatch(null); }
       setLoading(false);
     });
 
@@ -173,7 +204,6 @@ export default function Home() {
     if (session && selectedGroup) fetchWishes();
   }, [session, selectedGroup, fetchWishes]);
 
-  // Click outside menu
   useEffect(() => {
     function handleClickOutside(event) {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -194,6 +224,7 @@ export default function Home() {
     setSession(null);
     setSelectedGroup(null);
     setWishes([]);
+    setMyMatch(null);
     setIsMobileMenuOpen(false);
     setIsMenuOpen(false);
     await supabase.auth.signOut();
@@ -217,6 +248,12 @@ export default function Home() {
     setSelectedGroup(null);
     setWishes([]);
     setIsSettingsModalOpen(false);
+  };
+
+  const handleBugReport = () => {
+      window.location.href = "mailto:soporte@ishop.com?subject=Reporte Bug iShop Navidad&body=Hola, encontré el siguiente error:";
+      setIsMenuOpen(false);
+      setIsMobileMenuOpen(false);
   };
 
   const filteredWishes = wishes.filter(w => {
@@ -350,15 +387,32 @@ export default function Home() {
                        <span className="menu-icon-box text-blue-400 group-hover:bg-blue-500/20 group-hover:text-blue-300">🔗</span> 
                        <span>Invitar Amigos</span>
                    </button>
+
+                   <button onClick={() => { setIsRulesOpen(true); setIsMenuOpen(false); }} className="menu-item group">
+                       <span className="menu-icon-box text-indigo-400 group-hover:bg-indigo-500/20 group-hover:text-indigo-300">⚖️</span> 
+                       <span>Reglas del Juego</span>
+                   </button>
+
                    <button onClick={() => { setSelectedGroup(null); setIsMenuOpen(false); }} className="menu-item group">
                        <span className="menu-icon-box text-slate-400 group-hover:bg-slate-500/20 group-hover:text-slate-200">🔄</span> 
                        <span>Cambiar de Grupo</span>
                    </button>
-                   <div className="h-px bg-border my-1 mx-2"></div>
-                   <button onClick={handleLogout} className="menu-item group hover:!bg-red-500/10 hover:!border-red-500/20">
-                       <span className="menu-icon-box text-red-400 group-hover:bg-red-500/20 group-hover:text-red-300">🚪</span> 
-                       <span className="group-hover:text-red-300">Cerrar Sesión</span>
+                   
+                   {/* SEPARADOR GRANDE */}
+                   <div className="h-px bg-border my-2 mx-2"></div>
+
+                   {/* REPORTAR BUG (Antes de salir) */}
+                   <button onClick={handleBugReport} className="menu-item group">
+                       <span className="menu-icon-box text-orange-400 group-hover:bg-orange-500/20 group-hover:text-orange-300">🐛</span> 
+                       <span className="text-xs">Reportar Bug</span>
                    </button>
+
+                   {/* CERRAR SESIÓN DESTACADO (Rojo permanente) */}
+                   <button onClick={handleLogout} className="menu-item group mt-2 border border-red-500/20 bg-red-500/5 text-red-400 hover:bg-red-500/10">
+                       <span className="menu-icon-box bg-transparent border-none text-red-400 shadow-none">🚪</span> 
+                       <span className="font-bold">Cerrar Sesión</span>
+                   </button>
+
                </div>
              </div>
            )}
@@ -397,7 +451,9 @@ export default function Home() {
                 {isAdmin && <span className="text-[10px] text-yellow-500 font-bold bg-yellow-500/10 px-2 py-1 rounded border border-yellow-500/20 mt-2 inline-block">ADMINISTRADOR</span>}
               </div>
             </div>
-            <div className="p-4 space-y-2 overflow-y-auto flex-1">
+            
+            {/* LISTA SCROLLABLE */}
+            <div className="p-4 space-y-2 overflow-y-auto flex-1 custom-scrollbar">
               {isAdmin && (
                 <button onClick={() => { setIsSettingsModalOpen(true); setIsMobileMenuOpen(false); }} className="menu-item group py-4">
                     <span className="menu-icon-box text-xl text-cyan-400">⚙️</span>
@@ -421,14 +477,27 @@ export default function Home() {
                 <span className="menu-icon-box text-xl text-slate-400">🔄</span>
                 <span className="text-base">Cambiar de Grupo</span>
               </button>
-              <button onClick={handleLogout} className="menu-item group py-4 hover:!bg-red-900/20 hover:!border-red-900/30">
-                <span className="menu-icon-box text-xl text-red-400">🚪</span>
-                <span className="text-base group-hover:text-red-300">Cerrar Sesión</span>
+
+              <button onClick={() => { setIsRulesOpen(true); setIsMobileMenuOpen(false); }} className="menu-item group py-4">
+                 <span className="menu-icon-box text-xl text-indigo-400">⚖️</span>
+                 <span className="text-base">Reglas del Juego</span>
+              </button>
+              
+               <button onClick={handleBugReport} className="menu-item group py-4">
+                 <span className="menu-icon-box text-xl text-orange-400">🐛</span>
+                 <span className="text-xs">Reportar Bug</span>
               </button>
             </div>
-            <div className="p-6 border-t border-border bg-surface-highlight/20">
-              <p className="text-[10px] text-text-muted text-center font-mono uppercase tracking-widest">iShop Navidad v1.3 • {theme === 'dark' ? 'Cyberpunk' : 'Light'} Ed.</p>
+
+            {/* FOOTER FIJO CON CERRAR SESIÓN DESTACADO */}
+            <div className="p-4 border-t border-border bg-surface-highlight/10 space-y-4">
+               <button onClick={handleLogout} className="w-full py-4 rounded-xl flex items-center justify-center gap-3 border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all duration-300 group">
+                   <span className="text-xl">🚪</span>
+                   <span className="font-bold uppercase tracking-wider text-sm">Cerrar Sesión</span>
+               </button>
+               <p className="text-[10px] text-text-muted text-center font-mono uppercase tracking-widest">iShop Navidad v1.3</p>
             </div>
+
           </div>
         </>
       )}
@@ -448,8 +517,57 @@ export default function Home() {
          
          <div className="relative group">
           <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 rounded-3xl opacity-20 group-hover:opacity-30 transition duration-500 blur-xl"></div>
-          {/* USANDO EL NUEVO GLASS-PANEL (Mejora #8) */}
+          {/* GLASS PANEL */}
           <div className="relative glass-panel rounded-3xl p-8 md:p-10 overflow-hidden">
+             
+             {/* --- SECCIÓN DE REVELACIÓN (MYSTERY CARD) --- */}
+             {myMatch && (
+                <div className="mb-10 bg-[#0B0E14] border border-yellow-500/30 rounded-2xl p-1 overflow-hidden relative shadow-[0_0_30px_rgba(234,179,8,0.1)]">
+                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                    
+                    {!isRevealed ? (
+                        <button 
+                            onClick={() => setIsRevealed(true)}
+                            className="w-full h-24 md:h-32 bg-gradient-to-r from-yellow-900/20 to-amber-900/20 hover:from-yellow-900/40 hover:to-amber-900/40 transition-all flex flex-col items-center justify-center gap-2 group/secret cursor-pointer"
+                        >
+                            <span className="text-4xl animate-bounce">🎁</span>
+                            <span className="text-yellow-500 font-bold uppercase tracking-widest text-sm group-hover/secret:scale-105 transition-transform">
+                                Tienes un Amigo Secreto Asignado
+                            </span>
+                            <span className="text-[10px] text-yellow-500/60 font-mono">TOCA PARA REVELAR</span>
+                        </button>
+                    ) : (
+                        <div className="w-full p-6 flex flex-col md:flex-row items-center justify-between gap-6 bg-gradient-to-r from-yellow-900/10 to-transparent animate-in zoom-in duration-300">
+                             <div className="flex items-center gap-4">
+                                <div className="relative">
+                                    <div className="absolute -inset-2 bg-yellow-500/20 rounded-full blur animate-pulse"></div>
+                                    <Avatar seed={myMatch.avatar_seed} style={myMatch.avatar_style || 'avataaars'} size="lg" />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] text-yellow-500 font-bold uppercase tracking-widest mb-1">Tu misión es regalar a:</p>
+                                    <h3 className="text-2xl font-bold text-white">{myMatch.username || 'Usuario'}</h3>
+                                </div>
+                             </div>
+                             <div className="flex gap-2">
+                                <button 
+                                    onClick={() => {
+                                        setActiveTab('others'); 
+                                        toast.info(`¡Busca los deseos de ${myMatch.username}!`);
+                                    }}
+                                    className="px-4 py-2 bg-yellow-500 text-black font-bold text-xs uppercase tracking-wider rounded-lg hover:bg-yellow-400 transition-colors shadow-lg shadow-yellow-500/20"
+                                >
+                                    Ver sus Deseos 🕵️‍♂️
+                                </button>
+                                <button onClick={(e) => { e.stopPropagation(); setIsRevealed(false); }} className="p-2 text-slate-500 hover:text-white" title="Ocultar">
+                                    ✕
+                                </button>
+                             </div>
+                        </div>
+                    )}
+                </div>
+             )}
+             {/* --- FIN MYSTERY CARD --- */}
+
              <div className="relative z-10">
                 <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
                    <div className="flex items-center gap-4">
@@ -471,14 +589,14 @@ export default function Home() {
                       <span className="text-sm font-bold text-purple-400">{progressPercentage.toFixed(0)}%</span>
                    </div>
                    <div className="h-3 bg-background rounded-full overflow-hidden border border-border relative">
-                      {/* BARRA DE PROGRESO "VIVA" (Mejora #6) */}
+                      {/* BARRA DE PROGRESO "VIVA" */}
                       <div className="h-full bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 rounded-full transition-all duration-1000 ease-out shadow-lg shadow-purple-500/50 relative overflow-hidden" style={{ width: `${Math.min(progressPercentage, 100)}%` }}>
                           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer w-full"></div>
                       </div>
                    </div>
                 </div>
                 
-                {/* GRID DE CARDS CON FECHA Y MICRO-INTERACCIONES (Mejora #9) */}
+                {/* GRID DE CARDS CON FECHA Y MICRO-INTERACCIONES */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                    <div className="bg-background/50 backdrop-blur-sm border border-purple-500/20 rounded-xl p-4 hover:border-purple-500/40 hover:-translate-y-1 transition-all duration-300 shadow-sm hover:shadow-purple-500/10 cursor-default">
                       <div className="flex items-center gap-2 mb-2"><span className="text-xl">✏️</span><span className="text-[10px] text-text-muted uppercase tracking-wider">Mis Deseos</span></div>
@@ -493,7 +611,7 @@ export default function Home() {
                       <p className="text-2xl font-bold text-text-main">{totalWishes}</p>
                    </div>
                    
-                   {/* CARD: FECHA CON URGENCIA VISUAL (Mejora #7) */}
+                   {/* CARD: FECHA CON URGENCIA VISUAL */}
                    <div className={`
                         relative overflow-hidden group/date rounded-xl p-4 border transition-all duration-300 hover:-translate-y-1 cursor-default
                         backdrop-blur-sm
@@ -634,6 +752,12 @@ export default function Home() {
         session={session}
         wishes={wishes}
         groupName={selectedGroup.name}
+      />
+
+      {/* NUEVO MODAL DE REGLAS */}
+      <RulesModal 
+        isOpen={isRulesOpen}
+        onClose={() => setIsRulesOpen(false)}
       />
       
     </div>
