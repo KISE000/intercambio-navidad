@@ -26,11 +26,7 @@ export default function GroupSelector({ session, onSelectGroup, onLogout }) {
         .select('group_id, role, groups:group_id (id, name, code, created_by)')
         .eq('user_id', session.user.id);
 
-      if (membersError) {
-        // Truco para ver el error real si viene como objeto extraño
-        console.error("Supabase Error Detallado:", JSON.stringify(membersError, null, 2));
-        throw membersError;
-      }
+      if (membersError) throw membersError;
 
       // Filtrado seguro para evitar crash si un grupo fue borrado pero la membresía quedó huerfana
       const formattedGroups = (membersData || [])
@@ -47,7 +43,7 @@ export default function GroupSelector({ session, onSelectGroup, onLogout }) {
 
       setGroups(formattedGroups);
     } catch (err) {
-      console.error("Error final en fetchGroups:", err);
+      console.error("Error cargando grupos:", err); // Versión original
       // No mostramos toast intrusivo al cargar, solo log
     } finally {
       setLoading(false);
