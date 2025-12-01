@@ -8,7 +8,7 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
   const [title, setTitle] = useState('')
   const [details, setDetails] = useState('')
   const [link, setLink] = useState('')
-  const [price, setPrice] = useState('')
+  const [price, setPrice] = useState('') // Guardamos el valor formateado
   const [priority, setPriority] = useState('2')
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
@@ -19,6 +19,7 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
   const myWishesCount = currentWishes.filter(w => w.user_id === session?.user?.id).length
   const isLimitReached = myWishesCount >= 10
 
+  // --- LOGIC: PASTE IMAGE ---
   useEffect(() => {
     const handlePaste = (e) => {
       const items = e.clipboardData?.items;
@@ -51,6 +52,52 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
       setImagePreview(null)
     }
   }, [imageFile])
+
+  // --- LOGIC: AUTO-COMPLETE TITLE FROM LINK (Mejora #1) ---
+  const handleLinkBlur = () => {
+    if (link && !title) {
+      try {
+        const url = new URL(link);
+        // Intentar sacar algo legible del path
+        let possibleTitle = '';
+        
+        // Estrategia 1: Ultimo segmento no numérico
+        const segments = url.pathname.split('/').filter(s => s.length > 2 && isNaN(s));
+        if (segments.length > 0) {
+            // Preferimos segmentos largos que parezcan nombres
+            const candidate = segments.find(s => s.includes('-') || s.includes('_')) || segments[segments.length - 1];
+            possibleTitle = candidate
+                .replace(/[-_]/g, ' ') // Reemplazar guiones por espacios
+                .replace(/\b\w/g, l => l.toUpperCase()) // Capitalizar
+                .substring(0, 40); // Limitar largo
+        }
+
+        if (possibleTitle) {
+            setTitle(possibleTitle + '...');
+            toast.success("✨ ¡Título autocompletado mágicamente!");
+        }
+      } catch (e) {
+        // Ignorar si el link no es válido
+      }
+    }
+  };
+
+  // --- LOGIC: CURRENCY FORMATTING (Mejora #2) ---
+  const handlePriceChange = (e) => {
+    const rawValue = e.target.value.replace(/\D/g, ''); // Solo números
+    if (!rawValue) {
+        setPrice('');
+        return;
+    }
+    // Formatear a Moneda (CRC o USD genérico visual)
+    const formatted = new Intl.NumberFormat('es-CR', { 
+        style: 'currency', 
+        currency: 'CRC', 
+        maximumFractionDigits: 0 
+    }).format(rawValue);
+    
+    setPrice(formatted);
+  };
 
   const handleImageChange = (e) => {
     if (e.target.files && e.target.files[0]) {
@@ -122,7 +169,7 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
           details, 
           link, 
           priority: parseInt(priority), 
-          price, 
+          price, // Guardamos el string formateado (simple para este caso)
           image_url: finalImageUrl, 
           user_id: session.user.id, 
           group_id: groupId 
@@ -157,7 +204,7 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
       <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 rounded-3xl opacity-20 group-hover:opacity-30 transition duration-500 blur-xl"></div>
       
       {/* Tarjeta Principal */}
-      <div className="relative bg-surface backdrop-blur-xl rounded-3xl p-6 md:p-8 border border-border shadow-2xl transition-colors duration-300">
+      <div className="relative bg-surface/80 backdrop-blur-2xl rounded-3xl p-6 md:p-8 border border-border shadow-2xl transition-colors duration-300">
         
         <div className="flex items-center gap-4 mb-8">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-2xl shadow-lg shadow-purple-500/30 text-white">
@@ -177,9 +224,10 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
             <div className="space-y-2">
               <div className="flex justify-between items-center h-5 mb-2">
                  <label className="input-label mb-0">¿Qué deseas?</label>
+                 {/* VALIDATION CHECKMARK (Mejora #5) */}
+                 {title.length > 3 && <span className="text-green-400 text-xs font-bold animate-in zoom-in">✓</span>}
               </div>
-              {/* Envolvemos en relative aunque no tenga icono para igualar la estructura del otro input */}
-              <div className="relative">
+              <div className="relative group/input">
                 <input
                   type="text"
                   placeholder="Ej: Audífonos Sony..."
@@ -206,6 +254,7 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
                     className={`cyber-input h-[50px] py-0 leading-normal ${validLinkIcon ? 'pl-10 border-green-500/30' : ''}`}
                     value={link}
                     onChange={(e) => setLink(e.target.value)}
+                    onBlur={handleLinkBlur} // Trigger auto-complete
                   />
                   {validLinkIcon && (
                       <div className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full overflow-hidden bg-white p-0.5 shadow-sm flex items-center justify-center">
@@ -239,15 +288,16 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
                 ))}
             </div>
             
-            {/* 💰 INPUT DE PRECIO */}
+            {/* 💰 INPUT DE PRECIO MEJORADO */}
             <div className="relative mt-3">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted text-sm flex items-center justify-center h-full pt-0.5">$</span>
+                {/* Icono de billete o signo */}
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted text-lg pointer-events-none">💳</span>
                 <input 
                     type="text"
-                    placeholder="Precio aprox (ej: 20.000)"
-                    className="cyber-input pl-8 h-[50px] py-0 leading-normal"
+                    placeholder="Precio aprox (ej: ₡20,000)"
+                    className="cyber-input pl-11 h-[50px] py-0 leading-normal font-mono text-sm"
                     value={price}
-                    onChange={(e) => setPrice(e.target.value)}
+                    onChange={handlePriceChange}
                 />
             </div>
           </div>
@@ -268,10 +318,10 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
                 <span className="text-[9px] text-text-muted normal-case bg-surface-highlight border border-border px-2 py-0.5 rounded">Tip: Ctrl+V para pegar</span>
             </div>
             <label 
-              className={`flex flex-col items-center justify-center w-full h-40 border border-dashed rounded-2xl cursor-pointer transition-all duration-300 relative overflow-hidden group/dropzone ${
+              className={`flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-300 relative overflow-hidden group/dropzone ${
                 imagePreview
                   ? 'border-purple-500/50 bg-background' 
-                  : 'border-border hover:border-purple-500/50 bg-background/50 hover:bg-surface-highlight'
+                  : 'border-border hover:border-purple-500 hover:bg-purple-500/5 hover:scale-[1.01]'
               }`}
             >
               {imagePreview ? (
@@ -288,11 +338,11 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center pt-5 pb-6 text-text-muted group-hover/dropzone:text-purple-500 transition-colors">
-                   <div className="w-12 h-12 rounded-full bg-surface-highlight border border-border flex items-center justify-center mb-3 group-hover/dropzone:bg-purple-500/10 group-hover/dropzone:scale-110 transition-all duration-300">
+                   <div className="w-12 h-12 rounded-full bg-surface-highlight border border-border flex items-center justify-center mb-3 group-hover/dropzone:bg-purple-500 group-hover/dropzone:text-white group-hover/dropzone:scale-110 transition-all duration-300 shadow-lg">
                       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                    </div>
-                   <p className="text-xs font-bold uppercase tracking-wider">Click o Ctrl+V</p>
-                   <p className="text-[10px] opacity-60 mt-1">Max 2MB</p>
+                   <p className="text-xs font-bold uppercase tracking-wider">Suelta tu imagen aquí</p>
+                   <p className="text-[10px] opacity-60 mt-1">o haz click para buscar</p>
                 </div>
               )}
               <input 
@@ -308,13 +358,12 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
           <button 
             type="submit" 
             disabled={loading || isLimitReached}
-            className="btn-primary mt-4"
+            className="btn-primary mt-4 relative overflow-hidden group/btn"
           >
-            {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                    Subiendo...
-                </span>
-            ) : 'Agregar a mi lista'}
+            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300"></div>
+            <span className="relative flex items-center justify-center gap-2">
+                {loading ? 'Subiendo...' : 'Agregar a mi lista'}
+            </span>
           </button>
         </form>
       </div>

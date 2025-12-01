@@ -45,8 +45,6 @@ export default function Home() {
   const getDaysLeft = (dateString) => {
     if (!dateString) return null;
     const target = new Date(dateString);
-    // Ajustar zona horaria si es necesario, aquí usamos UTC simplificado para evitar problemas
-    // Le sumamos las horas para compensar la diferencia horaria al convertir a objeto Date
     target.setMinutes(target.getMinutes() + target.getTimezoneOffset());
     
     const today = new Date();
@@ -126,9 +124,7 @@ export default function Home() {
 
   const fetchWishes = useCallback(async () => {
     if (!selectedGroup || !session) return;
-    
     setLoadingWishes(true);
-    
     try {
       const { data, error } = await supabase
         .from('wishes')
@@ -326,7 +322,6 @@ export default function Home() {
                    {isAdmin && (
                        <>
                            <h4 className="text-[9px] text-yellow-500/70 font-mono uppercase tracking-widest px-2 pt-1 pb-1">ADMIN TOOLS</h4>
-                           
                            <button onClick={() => { setIsSettingsModalOpen(true); setIsMenuOpen(false); }} className="menu-item group">
                                <span className="menu-icon-box text-cyan-400 group-hover:bg-cyan-500/20 group-hover:text-cyan-300">⚙️</span> 
                                <span>Panel Admin</span>
@@ -334,42 +329,32 @@ export default function Home() {
                            <div className="h-px bg-border my-1 mx-2"></div>
                        </>
                    )}
-
                    <h4 className="text-[9px] text-text-muted font-mono uppercase tracking-widest px-2 pt-1 pb-1">MI CUENTA</h4>
-                   
                    <button onClick={() => { setIsTicketOpen(true); setIsMenuOpen(false); }} className="menu-item group">
                        <span className="menu-icon-box text-emerald-400 group-hover:bg-emerald-500/20 group-hover:text-emerald-300">🎫</span> 
                        <span>Mi Ticket Navideño</span>
                    </button>
-                   
-                   {/* TOGGLE THEME DESKTOP */}
                    <button onClick={toggleTheme} className="menu-item group">
                        <span className="menu-icon-box text-pink-400 group-hover:bg-pink-500/20 group-hover:text-pink-300">
                            {theme === 'dark' ? '☀️' : '🌙'}
                        </span> 
                        <span>{theme === 'dark' ? 'Modo Claro' : 'Modo Cyberpunk'}</span>
                    </button>
-                   
                    <button onClick={() => { setIsAvatarSelectorOpen(true); setIsMenuOpen(false); }} className="menu-item group">
                        <span className="menu-icon-box text-purple-400 group-hover:bg-purple-500/20 group-hover:text-purple-300">🎨</span> 
                        <span>Personalizar Avatar</span>
                    </button>
                    <div className="h-px bg-border my-1 mx-2"></div>
-
                    <h4 className="text-[9px] text-text-muted font-mono uppercase tracking-widest px-2 pt-1 pb-1">GRUPO</h4>
-
                    <button onClick={handleInvite} className="menu-item group">
                        <span className="menu-icon-box text-blue-400 group-hover:bg-blue-500/20 group-hover:text-blue-300">🔗</span> 
                        <span>Invitar Amigos</span>
                    </button>
-
                    <button onClick={() => { setSelectedGroup(null); setIsMenuOpen(false); }} className="menu-item group">
                        <span className="menu-icon-box text-slate-400 group-hover:bg-slate-500/20 group-hover:text-slate-200">🔄</span> 
                        <span>Cambiar de Grupo</span>
                    </button>
-                   
                    <div className="h-px bg-border my-1 mx-2"></div>
-
                    <button onClick={handleLogout} className="menu-item group hover:!bg-red-500/10 hover:!border-red-500/20">
                        <span className="menu-icon-box text-red-400 group-hover:bg-red-500/20 group-hover:text-red-300">🚪</span> 
                        <span className="group-hover:text-red-300">Cerrar Sesión</span>
@@ -385,7 +370,6 @@ export default function Home() {
         <>
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] animate-in fade-in duration-200" onClick={() => setIsMobileMenuOpen(false)} />
           <div className="fixed top-0 right-0 bottom-0 w-[85vw] max-w-sm bg-surface border-l border-border z-[70] shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col">
-             
              <div className="p-6 border-b border-border bg-surface-highlight/50 flex justify-between items-center relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 to-transparent pointer-events-none"></div>
                 <h2 className="text-xl font-bold text-text-main relative z-10 flex items-center gap-2">
@@ -395,7 +379,6 @@ export default function Home() {
                     <svg className="w-5 h-5 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
             </div>
-
             <div className="p-6 border-b border-border">
               <div className="flex items-center gap-4 mb-6">
                 <div className="relative">
@@ -407,7 +390,6 @@ export default function Home() {
                   <p className="text-base text-text-main font-medium truncate">{session.user.email}</p>
                 </div>
               </div>
-              
               <div className="bg-background rounded-xl p-4 border border-border relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-2 opacity-10 text-5xl transform rotate-12 group-hover:rotate-0 transition-transform">🎁</div>
                 <p className="text-[10px] text-text-muted uppercase tracking-widest mb-1">Grupo Actual</p>
@@ -415,49 +397,35 @@ export default function Home() {
                 {isAdmin && <span className="text-[10px] text-yellow-500 font-bold bg-yellow-500/10 px-2 py-1 rounded border border-yellow-500/20 mt-2 inline-block">ADMINISTRADOR</span>}
               </div>
             </div>
-
             <div className="p-4 space-y-2 overflow-y-auto flex-1">
-              
               {isAdmin && (
-                <>
-                    <button onClick={() => { setIsSettingsModalOpen(true); setIsMobileMenuOpen(false); }} className="menu-item group py-4">
-                        <span className="menu-icon-box text-xl text-cyan-400">⚙️</span>
-                        <span className="text-base">Panel Admin</span>
-                    </button>
-                </>
+                <button onClick={() => { setIsSettingsModalOpen(true); setIsMobileMenuOpen(false); }} className="menu-item group py-4">
+                    <span className="menu-icon-box text-xl text-cyan-400">⚙️</span>
+                    <span className="text-base">Panel Admin</span>
+                </button>
               )}
-
               <button onClick={() => { setIsTicketOpen(true); setIsMobileMenuOpen(false); }} className="menu-item group py-4">
                   <span className="menu-icon-box text-xl text-emerald-400">🎫</span>
                   <span className="text-base">Mi Ticket Navideño</span>
               </button>
-
-              {/* TOGGLE THEME MOBILE */}
               <button onClick={toggleTheme} className="menu-item group py-4">
-                  <span className="menu-icon-box text-xl text-pink-400">
-                      {theme === 'dark' ? '☀️' : '🌙'}
-                  </span>
+                  <span className="menu-icon-box text-xl text-pink-400">{theme === 'dark' ? '☀️' : '🌙'}</span>
                   <span className="text-base">{theme === 'dark' ? 'Modo Claro' : 'Modo Cyberpunk'}</span>
               </button>
-
               <button onClick={() => { setIsAvatarSelectorOpen(true); setIsMobileMenuOpen(false); }} className="menu-item group py-4">
                 <span className="menu-icon-box text-xl text-pink-400">🎨</span>
                 <span className="text-base">Personalizar Avatar</span>
               </button>
-
               <div className="h-px bg-border my-2"></div>
-
               <button onClick={() => { setSelectedGroup(null); setIsMobileMenuOpen(false); }} className="menu-item group py-4">
                 <span className="menu-icon-box text-xl text-slate-400">🔄</span>
                 <span className="text-base">Cambiar de Grupo</span>
               </button>
-              
               <button onClick={handleLogout} className="menu-item group py-4 hover:!bg-red-900/20 hover:!border-red-900/30">
                 <span className="menu-icon-box text-xl text-red-400">🚪</span>
                 <span className="text-base group-hover:text-red-300">Cerrar Sesión</span>
               </button>
             </div>
-
             <div className="p-6 border-t border-border bg-surface-highlight/20">
               <p className="text-[10px] text-text-muted text-center font-mono uppercase tracking-widest">iShop Navidad v1.3 • {theme === 'dark' ? 'Cyberpunk' : 'Light'} Ed.</p>
             </div>
@@ -465,7 +433,7 @@ export default function Home() {
         </>
       )}
 
-      {/* Hero y Stats */}
+      {/* HERO & STATS */}
       <div className="relative z-10 max-w-4xl mx-auto px-4 mt-8 mb-12">
          {/* --- BROADCAST ALERT --- */}
          {selectedGroup.announcement && (
@@ -480,7 +448,8 @@ export default function Home() {
          
          <div className="relative group">
           <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 rounded-3xl opacity-20 group-hover:opacity-30 transition duration-500 blur-xl"></div>
-          <div className="relative bg-surface rounded-3xl p-8 md:p-10 border border-border shadow-2xl overflow-hidden">
+          {/* USANDO EL NUEVO GLASS-PANEL (Mejora #8) */}
+          <div className="relative glass-panel rounded-3xl p-8 md:p-10 overflow-hidden">
              <div className="relative z-10">
                 <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
                    <div className="flex items-center gap-4">
@@ -501,30 +470,44 @@ export default function Home() {
                       <span className="text-sm text-text-muted">Deseos agregados</span>
                       <span className="text-sm font-bold text-purple-400">{progressPercentage.toFixed(0)}%</span>
                    </div>
-                   <div className="h-3 bg-background rounded-full overflow-hidden border border-border">
-                      <div className="h-full bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 rounded-full transition-all duration-1000 ease-out shadow-lg shadow-purple-500/50" style={{ width: `${Math.min(progressPercentage, 100)}%` }}></div>
+                   <div className="h-3 bg-background rounded-full overflow-hidden border border-border relative">
+                      {/* BARRA DE PROGRESO "VIVA" (Mejora #6) */}
+                      <div className="h-full bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 rounded-full transition-all duration-1000 ease-out shadow-lg shadow-purple-500/50 relative overflow-hidden" style={{ width: `${Math.min(progressPercentage, 100)}%` }}>
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer w-full"></div>
+                      </div>
                    </div>
                 </div>
                 
-                {/* GRID DE CARDS CON FECHA */}
+                {/* GRID DE CARDS CON FECHA Y MICRO-INTERACCIONES (Mejora #9) */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                   <div className="bg-background/50 backdrop-blur-sm border border-purple-500/20 rounded-xl p-4 hover:border-purple-500/40 transition-colors">
+                   <div className="bg-background/50 backdrop-blur-sm border border-purple-500/20 rounded-xl p-4 hover:border-purple-500/40 hover:-translate-y-1 transition-all duration-300 shadow-sm hover:shadow-purple-500/10 cursor-default">
                       <div className="flex items-center gap-2 mb-2"><span className="text-xl">✏️</span><span className="text-[10px] text-text-muted uppercase tracking-wider">Mis Deseos</span></div>
                       <p className="text-2xl font-bold text-text-main">{myWishesCount}</p>
                    </div>
-                   <div className="bg-background/50 backdrop-blur-sm border border-pink-500/20 rounded-xl p-4 hover:border-pink-500/40 transition-colors">
+                   <div className="bg-background/50 backdrop-blur-sm border border-pink-500/20 rounded-xl p-4 hover:border-pink-500/40 hover:-translate-y-1 transition-all duration-300 shadow-sm hover:shadow-pink-500/10 cursor-default">
                       <div className="flex items-center gap-2 mb-2"><span className="text-xl">👥</span><span className="text-[10px] text-text-muted uppercase tracking-wider">Del Grupo</span></div>
                       <p className="text-2xl font-bold text-text-main">{othersWishesCount}</p>
                    </div>
-                   <div className="bg-background/50 backdrop-blur-sm border border-orange-500/20 rounded-xl p-4 hover:border-orange-500/40 transition-colors">
+                   <div className="bg-background/50 backdrop-blur-sm border border-orange-500/20 rounded-xl p-4 hover:border-orange-500/40 hover:-translate-y-1 transition-all duration-300 shadow-sm hover:shadow-orange-500/10 cursor-default">
                       <div className="flex items-center gap-2 mb-2"><span className="text-xl">🎯</span><span className="text-[10px] text-text-muted uppercase tracking-wider">Total</span></div>
                       <p className="text-2xl font-bold text-text-main">{totalWishes}</p>
                    </div>
                    
-                   {/* NUEVA CARD: FECHA DEL EVENTO */}
-                   <div className="bg-background/50 backdrop-blur-sm border border-blue-500/20 rounded-xl p-4 hover:border-blue-500/40 transition-colors relative overflow-hidden group/date">
-                      {/* Efecto brillo sutil azul */}
-                      <div className="absolute -right-4 -top-4 w-16 h-16 bg-blue-500/10 rounded-full blur-xl group-hover/date:bg-blue-500/20 transition-colors"></div>
+                   {/* CARD: FECHA CON URGENCIA VISUAL (Mejora #7) */}
+                   <div className={`
+                        relative overflow-hidden group/date rounded-xl p-4 border transition-all duration-300 hover:-translate-y-1 cursor-default
+                        backdrop-blur-sm
+                        ${daysLeft !== null && daysLeft <= 5 
+                            ? 'bg-red-500/10 border-red-500/40 hover:border-red-500/60' 
+                            : daysLeft !== null && daysLeft <= 15
+                            ? 'bg-orange-500/5 border-orange-500/30 hover:border-orange-500/50'
+                            : 'bg-background/50 border-blue-500/20 hover:border-blue-500/40'
+                        }
+                   `}>
+                      {/* Efecto brillo sutil variable */}
+                      <div className={`absolute -right-4 -top-4 w-16 h-16 rounded-full blur-xl transition-colors ${
+                          daysLeft <= 5 ? 'bg-red-500/20 animate-pulse' : 'bg-blue-500/10'
+                      }`}></div>
                       
                       <div className="flex items-center gap-2 mb-2 relative z-10">
                           <span className="text-xl">📅</span>
@@ -536,7 +519,13 @@ export default function Home() {
                               <p className="text-2xl font-bold text-text-main leading-none">
                                   {new Date(selectedGroup.event_date + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
                               </p>
-                              <p className={`text-[10px] font-bold mt-1 ${daysLeft < 0 ? 'text-red-400' : daysLeft === 0 ? 'text-emerald-400 animate-pulse' : 'text-blue-400'}`}>
+                              <p className={`text-[10px] font-bold mt-1 uppercase tracking-wider ${
+                                  daysLeft < 0 ? 'text-red-400' 
+                                  : daysLeft === 0 ? 'text-emerald-400 animate-pulse' 
+                                  : daysLeft <= 5 ? 'text-red-400 font-black animate-pulse' 
+                                  : daysLeft <= 15 ? 'text-orange-400' 
+                                  : 'text-blue-400'
+                              }`}>
                                   {daysLeft < 0 ? '¡Ya pasó!' : daysLeft === 0 ? '¡ES HOY!' : `Faltan ${daysLeft} días`}
                               </p>
                           </div>

@@ -11,28 +11,23 @@
   --text-main: #e2e8f0;
   --text-muted: #94a3b8;
   --border-color: rgba(255, 255, 255, 0.1);
-  --input-bg: rgba(11, 14, 20, 0.8);
+  --input-bg: rgba(11, 14, 20, 0.6); 
   --snow-color: #ffffff;
-  --shadow-color: rgba(139, 92, 246, 0.15); /* Sombra púrpura sutil */
+  --shadow-color: rgba(139, 92, 246, 0.15);
   --font-space: 'Inter', sans-serif;
 }
 
 /* --- TEMA LIGHT (EDICIÓN FROST / HIELO) --- */
 .light {
-  --bg-app: #f1f5f9; /* Slate-100: No blanco puro, sino gris "hielo" */
-  --bg-card: #ffffff; /* Blanco puro para que resalte sobre el fondo */
-  --bg-card-highlight: #f8fafc; /* Slate-50 */
-  --primary: #6366f1; /* Indigo-500: Más vibrante para fondo claro */
-  --text-main: #1e293b; /* Slate-800: Texto fuerte y legible */
-  --text-muted: #64748b; /* Slate-500 */
-  
-  /* Borde sutilmente coloreado, no gris muerto */
+  --bg-app: #f1f5f9;
+  --bg-card: #ffffff;
+  --bg-card-highlight: #f8fafc;
+  --primary: #6366f1;
+  --text-main: #1e293b;
+  --text-muted: #64748b;
   --border-color: rgba(99, 102, 241, 0.15); 
-  
-  --input-bg: #ffffff;
-  --snow-color: #cbd5e1; /* Slate-300: Nieve grisácea visible */
-  
-  /* La clave del pop: Sombra azulada/violeta difusa */
+  --input-bg: rgba(255, 255, 255, 0.8);
+  --snow-color: #cbd5e1;
   --shadow-color: rgba(99, 102, 241, 0.15); 
 }
 
@@ -45,24 +40,20 @@ html {
 body {
   @apply bg-background text-text-main min-h-screen overflow-x-hidden font-sans transition-colors duration-300;
   
-  /* Gradiente de fondo sutil para dar atmósfera */
   background-image: 
     radial-gradient(circle at 50% 0%, var(--primary) 0%, transparent 25%, transparent 100%);
   background-size: 100% 60vh;
   background-repeat: no-repeat;
-  
-  /* Hacemos la opacidad del gradiente muy baja en light mode para que no queme */
   opacity: 1; 
 }
 
-/* En modo Dark, el fondo es más complejo */
+/* Fondos complejos */
 :root:not(.light) body {
     background-image: 
     radial-gradient(circle at 50% 0%, #2e1065 0%, transparent 40%),
     radial-gradient(circle at 0% 100%, #1e1b4b 0%, transparent 30%);
 }
 
-/* En modo Light, bajamos la intensidad del gradiente superior */
 .light body {
     background-image: 
     radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.15) 0%, transparent 40%);
@@ -87,9 +78,28 @@ h1, h2, h3, .font-display {
 }
 
 @layer components {
-  /* Input estandarizado */
+  /* Input con Efecto NEÓN y Glow 
+     FIX: Quitamos placeholder del @apply y usamos CSS estándar para evitar el error.
+  */
   .cyber-input {
-    @apply w-full bg-[var(--input-bg)] backdrop-blur-sm border border-border text-text-main rounded-xl px-4 py-3 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-text-muted shadow-sm focus:shadow-[0_0_15px_rgba(99,102,241,0.2)];
+    @apply w-full bg-[var(--input-bg)] backdrop-blur-md border border-border text-text-main rounded-xl px-4 py-3 
+    outline-none transition-all duration-300 shadow-sm
+    focus:border-primary focus:ring-1 focus:ring-primary 
+    focus:shadow-[0_0_20px_rgba(139,92,246,0.25)];
+  }
+
+  /* Estilo del Placeholder seguro */
+  .cyber-input::placeholder {
+    color: var(--text-muted);
+    opacity: 0.5;
+  }
+
+  /* Nuevo Panel Glassmorphism Realista
+     FIX: Quitamos bg-surface/60 del @apply y usamos color-mix para la transparencia.
+  */
+  .glass-panel {
+    @apply backdrop-blur-2xl border border-white/10 shadow-2xl;
+    background-color: color-mix(in srgb, var(--bg-card), transparent 40%);
   }
   
   /* Botón Principal */
@@ -103,7 +113,6 @@ h1, h2, h3, .font-display {
 
   /* --- MENU --- */
   .glass-menu {
-    /* Fondo sólido con tinte en light mode para contraste, blur en dark */
     @apply bg-surface backdrop-blur-xl border border-border shadow-xl shadow-[var(--shadow-color)];
   }
 
@@ -120,12 +129,21 @@ h1, h2, h3, .font-display {
 .animate-fall {
   animation: fall 10s linear infinite;
   color: var(--snow-color);
-  text-shadow: 0 0 5px var(--bg-card); /* Pequeño borde para contraste en nieve */
+  text-shadow: 0 0 5px var(--bg-card); 
 }
 
-/* Animación de entrada suave para el menú */
 .animate-menu-in {
   animation: menuIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Animación Shimmer para la barra de progreso */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite linear;
 }
 
 @keyframes menuIn {
