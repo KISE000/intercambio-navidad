@@ -20,7 +20,6 @@ export default function GroupSelector({ session, onSelectGroup, onLogout, theme,
     try {
       setLoading(true);
       
-      // AGREGADO: event_date en la consulta
       const { data: membersData, error: membersError } = await supabase
         .from('group_members')
         .select('group_id, role, groups:group_id (id, name, code, created_by, event_date)')
@@ -34,7 +33,7 @@ export default function GroupSelector({ session, onSelectGroup, onLogout, theme,
           id: item.groups.id,
           name: item.groups.name,
           code: item.groups.code,
-          event_date: item.groups.event_date, // AGREGADO: Mapeo de la fecha
+          event_date: item.groups.event_date,
           role: item.role,
           isCreator: item.groups.created_by === session.user.id
         }))
@@ -94,6 +93,7 @@ export default function GroupSelector({ session, onSelectGroup, onLogout, theme,
     setLoading(true);
 
     try {
+      // Enviamos el código limpio
       const { data, error: rpcError } = await supabase
         .rpc('join_group_via_code', { code_input: joinCode.trim() });
 
@@ -143,7 +143,7 @@ export default function GroupSelector({ session, onSelectGroup, onLogout, theme,
       <div className="relative group w-full max-w-md">
         <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 rounded-[2rem] opacity-75 blur-xl group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
         
-        {/* Tarjeta Principal (Adaptable) */}
+        {/* Tarjeta Principal */}
         <div className="relative bg-surface backdrop-blur-xl border border-border rounded-[1.7rem] shadow-2xl p-8 overflow-hidden transition-colors duration-300">
           
           <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 pointer-events-none"></div>
@@ -261,6 +261,7 @@ export default function GroupSelector({ session, onSelectGroup, onLogout, theme,
             </form>
           )}
 
+          {/* VISTA JOIN: Corrección de mayúsculas */}
           {viewMode === 'join' && (
             <form onSubmit={handleJoinGroup} className="mb-4 animate-in fade-in slide-in-from-bottom-4 relative z-10">
                <div className="space-y-2 mb-6 group/input">
@@ -270,7 +271,8 @@ export default function GroupSelector({ session, onSelectGroup, onLogout, theme,
                    placeholder="Ej: NAV-1234" 
                    className="cyber-input font-mono uppercase"
                    value={joinCode}
-                   onChange={(e) => setJoinCode(e.target.value)}
+                   // Forzamos mayúsculas al escribir para que coincida con el backend
+                   onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
                    autoFocus
                  />
                </div>
