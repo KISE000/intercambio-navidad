@@ -17,7 +17,7 @@ import {
   arrayMove, 
   SortableContext, 
   sortableKeyboardCoordinates, 
-  rectSortingStrategy,
+  horizontalListSortingStrategy, 
   useSortable
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -87,7 +87,7 @@ const detectTags = (text) => {
   return null;
 };
 
-// --- SUB-COMPONENTE: TARJETA INDIVIDUAL ---
+// --- TARJETA INDIVIDUAL ---
 const MemoizedWishCardItem = memo(function WishCardItem({ wish, isMine, onEdit, onDelete, onImageClick, onToggleHidden, dragListeners }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showMenu, setShowMenu] = useState(false); 
@@ -101,84 +101,61 @@ const MemoizedWishCardItem = memo(function WishCardItem({ wish, isMine, onEdit, 
 
   if (isHidden && !isMine) return null;
 
-  const contentPadding = wish.image_url ? 'pt-4' : 'pt-12';
+  const contentPadding = wish.image_url ? 'pt-4' : 'pt-10';
   const opacityClass = isHidden ? 'opacity-60 grayscale-[0.8] border-dashed border-border' : '';
 
   return (
-    <div className={`relative backdrop-blur-md border rounded-3xl overflow-hidden group hover:translate-y-[-2px] transition-all duration-300 flex flex-col h-full ${priority.container} ${opacityClass}`}>
+    <div className={`relative backdrop-blur-md border rounded-3xl overflow-hidden group hover:-translate-y-1 transition-all duration-300 flex flex-col h-full w-full ${priority.container} ${opacityClass}`}>
       <div className={`absolute inset-0 ${priority.gradient} opacity-50 pointer-events-none`}></div>
 
-      {/* --- AGARRADERA (HANDLE) --- */}
       {isMine && (
         <button 
           {...dragListeners}
-          className="absolute top-0 inset-x-0 h-10 flex items-start justify-center pt-3 z-30 cursor-grab active:cursor-grabbing touch-none outline-none group/handle"
+          className="absolute top-0 inset-x-0 h-8 flex items-start justify-center pt-2 z-30 cursor-grab active:cursor-grabbing touch-none outline-none group/handle"
         >
-          <div className="flex gap-1">
-             {[...Array(6)].map((_, i) => (
-               <div key={i} className="w-1 h-1 rounded-full bg-text-muted/20 group-hover/handle:bg-text-muted/50 transition-colors"></div>
-             ))}
-          </div>
+          <div className="w-12 h-1 rounded-full bg-white/10 group-hover/handle:bg-purple-500/50 transition-colors"></div>
         </button>
       )}
 
-      {/* Badges Left */}
       <div className="absolute top-4 left-4 z-20 flex flex-col gap-2 pointer-events-none">
         {showNewBadge && !isHidden && (
-            <span className="bg-purple-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg shadow-lg shadow-purple-500/30 animate-pulse tracking-wide self-start">
+            <span className="bg-purple-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-md shadow-lg shadow-purple-500/30 animate-pulse tracking-wide self-start">
                 NUEVO
             </span>
         )}
         {wish.price && (
-            <span className="bg-surface/90 text-emerald-500 border border-emerald-500/30 text-[10px] font-mono font-bold px-2 py-1 rounded-lg backdrop-blur-md self-start flex items-center gap-1">
+            <span className="bg-black/60 text-emerald-400 border border-emerald-500/30 text-[9px] font-mono font-bold px-2 py-0.5 rounded-md backdrop-blur-md self-start flex items-center gap-1">
                💲 {wish.price}
             </span>
         )}
       </div>
 
-      {/* --- MENU DE OPCIONES --- */}
       <div className="absolute top-3 right-3 z-50 flex items-center gap-2">
         {isMine && (
             <div className="relative">
                 <button 
                     onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-                    className={`w-12 h-12 flex items-center justify-center rounded-full transition-all duration-200 border group/btn
+                    className={`w-8 h-8 flex items-center justify-center rounded-full transition-all duration-200 border group/btn
                       ${showMenu 
                         ? 'bg-purple-500 text-white border-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.4)]' 
-                        : 'bg-black/10 text-text-muted border-border hover:bg-surface-highlight hover:text-text-main hover:border-text-muted/30'
+                        : 'bg-black/20 text-text-muted border-transparent hover:bg-surface-highlight hover:text-text-main hover:border-white/10'
                       } backdrop-blur-md`}
-                    aria-label="Opciones"
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>
-                    </svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
                 </button>
                 
                 {showMenu && (
                     <>
                         <div className="fixed inset-0 z-[49]" onClick={(e) => { e.stopPropagation(); setShowMenu(false); }}></div>
-                        
-                        <div className="absolute right-0 top-full mt-2 w-44 glass-menu rounded-xl z-[50] overflow-hidden flex flex-col py-1 animate-in fade-in slide-in-from-top-2 duration-200">
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); onToggleHidden(wish); setShowMenu(false); }} 
-                              className="menu-item border-b border-border"
-                            >
-                                <span className="text-base">{isHidden ? '👁️' : '🕶️'}</span>
-                                <span className="font-medium">{isHidden ? 'Mostrar' : 'Ocultar'}</span>
+                        <div className="absolute right-0 top-full mt-2 w-40 glass-menu rounded-xl z-[50] overflow-hidden flex flex-col py-1 animate-in fade-in zoom-in-95 duration-200 shadow-2xl border border-white/10 bg-[#0B0E14]">
+                            <button onClick={(e) => { e.stopPropagation(); onToggleHidden(wish); setShowMenu(false); }} className="menu-item border-b border-white/5 text-xs">
+                                <span className="text-sm">{isHidden ? '👁️' : '🕶️'}</span> {isHidden ? 'Mostrar' : 'Ocultar'}
                             </button>
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); onEdit(wish); setShowMenu(false); }} 
-                              className="menu-item border-b border-border text-blue-400 hover:text-blue-500 hover:bg-blue-500/10"
-                            >
-                                <span className="text-base">✏️</span>
-                                <span className="font-medium">Editar</span>
+                            <button onClick={(e) => { e.stopPropagation(); onEdit(wish); setShowMenu(false); }} className="menu-item border-b border-white/5 text-blue-400 hover:bg-blue-500/10 text-xs">
+                                <span className="text-sm">✏️</span> Editar
                             </button>
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); onDelete(wish.id); setShowMenu(false); }} 
-                              className="menu-item text-red-400 hover:text-red-500 hover:bg-red-500/10"
-                            >
-                                <span className="text-base">🗑️</span>
-                                <span className="font-medium">Borrar</span>
+                            <button onClick={(e) => { e.stopPropagation(); onDelete(wish.id); setShowMenu(false); }} className="menu-item text-red-400 hover:bg-red-500/10 text-xs">
+                                <span className="text-sm">🗑️</span> Borrar
                             </button>
                         </div>
                     </>
@@ -187,118 +164,62 @@ const MemoizedWishCardItem = memo(function WishCardItem({ wish, isMine, onEdit, 
         )}
       </div>
 
-      {/* Imagen (O Placeholder Pro) */}
       <div 
-          className="relative h-56 overflow-hidden cursor-pointer group/img shrink-0 mt-4 mx-4 rounded-2xl border border-border shadow-inner bg-background p-2 z-10"
+          className="relative h-40 overflow-hidden cursor-pointer group/img shrink-0 mt-3 mx-3 rounded-xl border border-white/5 bg-black/20 z-10"
           onClick={() => wish.image_url && onImageClick(wish.image_url)}
           onPointerDown={(e) => e.stopPropagation()} 
         >
           {wish.image_url ? (
-              <img 
-                src={wish.image_url} 
-                alt={wish.title}
-                className="w-full h-full object-contain transition-transform duration-700 group-hover/img:scale-110"
-              />
+              <img src={wish.image_url} alt={wish.title} className="w-full h-full object-contain p-2 transition-transform duration-500 group-hover/img:scale-110"/>
           ) : (
-              // --- PLACEHOLDER PREMIUM ---
-              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-500/5 to-blue-500/5 relative group-hover/img:scale-105 transition-transform duration-500">
-                  {/* Patrón de fondo sutil */}
-                  <div className="absolute inset-0 opacity-20 bg-[radial-gradient(var(--text-muted)_1px,transparent_1px)] [background-size:16px_16px]"></div>
-                  
-                  {/* Icono central con efecto */}
-                  <div className="text-5xl filter drop-shadow-lg opacity-60 group-hover/img:opacity-100 group-hover/img:scale-110 transition-all duration-300 transform">
-                      🎁
-                  </div>
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-white/5 to-transparent">
+                  <div className="text-4xl opacity-30 grayscale group-hover/img:grayscale-0 group-hover/img:opacity-80 transition-all duration-500">🎁</div>
               </div>
-          )}
-          
-          {wish.image_url && (
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                <div className="bg-white/10 backdrop-blur-md rounded-full p-3 text-white border border-white/20 shadow-xl">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" /></svg>
-                </div>
-            </div>
           )}
       </div>
 
-      {/* Contenido */}
-      <div className={`px-6 pb-6 flex flex-col flex-1 relative z-10 ${contentPadding}`}>
-        
-        {/* Meta-datos */}
-        <div className="flex flex-wrap items-center gap-2 mb-3">
-            <div className={`${priority.badge} text-[9px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 uppercase tracking-wider`}>
-                <span>{priority.icon}</span>
-                <span>{priority.label}</span>
+      <div className={`px-5 pb-5 flex flex-col flex-1 relative z-10 ${contentPadding}`}>
+        <div className="flex flex-wrap items-center gap-1.5 mb-2">
+            <div className={`${priority.badge} text-[8px] font-bold px-1.5 py-0.5 rounded border flex items-center gap-1 uppercase tracking-wider`}>
+                <span>{priority.icon}</span> <span>{priority.label}</span>
             </div>
-            {isHidden && (
-                <span className="text-[9px] font-bold bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700 uppercase">👁️‍🗨️ Oculto</span>
-            )}
-            {tag && <span className="text-[9px] font-bold bg-surface-highlight text-text-muted px-2 py-0.5 rounded border border-border uppercase">{tag}</span>}
+            {tag && <span className="text-[8px] font-bold bg-white/5 text-text-muted px-1.5 py-0.5 rounded border border-white/5 uppercase">{tag}</span>}
         </div>
 
-        <h3 className="font-bold text-lg text-text-main leading-tight break-words drop-shadow-sm mb-2">
-            {wish.title}
-        </h3>
+        <h3 className="font-bold text-base text-text-main leading-tight line-clamp-2 mb-1">{wish.title}</h3>
         
-        <div className="flex-1 mb-4">
+        <div className="flex-1 mb-3">
             {wish.details ? (
-              <p 
-                onClick={(e) => { 
-                   e.stopPropagation(); 
-                   setIsExpanded(!isExpanded); 
-                }}
-                className={`text-text-muted text-sm leading-relaxed whitespace-pre-wrap break-words cursor-pointer transition-all select-none ${isExpanded ? '' : 'line-clamp-4 hover:text-text-main'}`}
-              >
+              <p onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }} className={`text-text-muted text-xs leading-relaxed cursor-pointer ${isExpanded ? '' : 'line-clamp-2 hover:text-text-main transition-colors'}`}>
                 {wish.details}
               </p>
-            ) : (
-                <p className="text-text-muted/60 text-xs italic">Sin detalles adicionales.</p>
-            )}
+            ) : <p className="text-text-muted/40 text-[10px] italic">Sin detalles.</p>}
         </div>
 
-        <div className="mt-auto pt-4 border-t border-border flex items-center justify-between gap-3">
-          <div className="flex-1 flex flex-col">
-            {wish.link && (
-              <a 
-                href={wish.link} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-purple-500 transition-colors group/link mb-1"
-                onPointerDown={(e) => e.stopPropagation()} 
-              >
-                {favicon ? <img src={favicon} alt="icon" className="w-3 h-3 rounded-sm" /> : <span>🔗</span>}
-                Ver Enlace
+        <div className="mt-auto pt-3 border-t border-white/5 flex items-center justify-between">
+            {wish.link ? (
+              <a href={wish.link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest text-blue-400 hover:text-blue-300 transition-colors bg-blue-500/10 px-2 py-1 rounded-md" onPointerDown={(e) => e.stopPropagation()}>
+                {favicon ? <img src={favicon} alt="icon" className="w-3 h-3 rounded-sm" /> : <span>🔗</span>} Ver Link
               </a>
-            )}
-            <span className="text-[9px] text-text-muted/80 font-mono">Añadido {relativeDate}</span>
-          </div>
+            ) : <span></span>}
+            <span className="text-[8px] text-text-muted/60 font-mono">{relativeDate}</span>
         </div>
       </div>
     </div>
   );
 });
 
-// --- COMPONENTE WRAPPER DND ---
+// --- WRAPPER DRAGGABLE ---
 function SortableWishCard({ wish, children, disabled }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging
-  } = useSortable({ id: wish.id, disabled });
-
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: wish.id, disabled });
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     zIndex: isDragging ? 50 : 'auto',
     opacity: isDragging ? 0.8 : 1,
-    scale: isDragging ? 1.05 : 1,
   };
-
   return (
-    <div ref={setNodeRef} style={style} {...attributes} className="h-full relative">
+    <div ref={setNodeRef} style={style} {...attributes} className="h-full min-w-[280px] max-w-[280px] snap-center shrink-0">
       {cloneElement(children, { dragListeners: listeners })}
     </div>
   );
@@ -308,21 +229,17 @@ function SortableWishCard({ wish, children, disabled }) {
 export default function WishList({ wishes, currentUser, onDelete }) {
   const [internalWishes, setInternalWishes] = useState(wishes);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [sortOption, setSortOption] = useState('newest'); 
   
   const [editingWish, setEditingWish] = useState(null);
   const [formData, setFormData] = useState({ title: '', details: '', link: '', priority: '2', price: '' });
   const [loadingEdit, setLoadingEdit] = useState(false);
 
-  const [expandedGroups, setExpandedGroups] = useState({});
+  const [expandedUsers, setExpandedUsers] = useState({});
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setInternalWishes(wishes);
-  }, [wishes]);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  useEffect(() => { setInternalWishes(wishes); }, [wishes]);
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     if (editingWish) {
@@ -337,12 +254,8 @@ export default function WishList({ wishes, currentUser, onDelete }) {
   }, [editingWish]);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
   const groupWishesByUser = (list) => {
@@ -369,199 +282,242 @@ export default function WishList({ wishes, currentUser, onDelete }) {
     }, {});
   };
 
-  const groupedWishes = groupWishesByUser(internalWishes);
+  const groupedWishesObj = groupWishesByUser(internalWishes);
+  let groupedWishesArray = Object.values(groupedWishesObj);
+
+  if (sortOption === 'fewest') {
+      groupedWishesArray.sort((a, b) => a.wishes.length - b.wishes.length);
+  } else {
+      groupedWishesArray.sort((a, b) => a.name.localeCompare(b.name));
+  }
 
   useEffect(() => {
     if (currentUser?.id) {
-        setExpandedGroups(prev => {
-            if (Object.prototype.hasOwnProperty.call(prev, currentUser.id)) {
-                return prev;
-            }
+        setExpandedUsers(prev => {
+            if (Object.prototype.hasOwnProperty.call(prev, currentUser.id)) { return prev; }
             return { ...prev, [currentUser.id]: true };
         });
     }
   }, [currentUser]);
 
-  const toggleGroup = (userId) => {
-    setExpandedGroups(prev => ({ ...prev, [userId]: !prev[userId] }));
+  const toggleUser = (userId) => {
+    setExpandedUsers(prev => ({ ...prev, [userId]: !prev[userId] }));
+  };
+
+  const scrollCarousel = (userId, direction) => {
+      const container = document.getElementById(`carousel-${userId}`);
+      if (container) {
+          const scrollAmount = direction === 'left' ? -300 : 300; 
+          container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+      }
   };
 
   const handleDragEnd = async (event) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-
+    
     const activeWish = internalWishes.find(w => w.id === active.id);
     if (activeWish.user_id !== currentUser.id) return;
 
     const oldIndex = internalWishes.findIndex(w => w.id === active.id);
     const newIndex = internalWishes.findIndex(w => w.id === over.id);
-
     const newWishes = arrayMove(internalWishes, oldIndex, newIndex);
     setInternalWishes(newWishes);
 
     const myWishes = newWishes.filter(w => w.user_id === currentUser.id);
-    
     try {
-        const updates = myWishes.map((w, index) => ({
-            id: w.id,
-            position: index
-        }));
+        const updates = myWishes.map((w, index) => ({ id: w.id, position: index }));
         const updatesJson = JSON.stringify(updates);
-        const { error: rpcError } = await supabase.rpc('reorder_wishes', { updates_json: updatesJson });
-        if (rpcError) throw rpcError;
+        await supabase.rpc('reorder_wishes', { updates_json: updatesJson });
         toast.success('Orden actualizado');
     } catch (err) {
-        toast.error('Error guardando el orden');
+        toast.error('Error guardando orden');
         if (onDelete) onDelete(); 
     }
   };
 
   const handleDelete = async (wishId) => {
-    if (!window.confirm("¿Estás seguro de borrar este deseo?")) return;
+    if (!window.confirm("¿Borrar deseo?")) return;
     const { error } = await supabase.from('wishes').delete().eq('id', wishId);
-    if (error) toast.error("Error: " + error.message);
-    else {
-      toast.success("Deseo eliminado");
-      if (onDelete) onDelete();
-    }
+    if (error) toast.error(error.message);
+    else { toast.success("Borrado"); if (onDelete) onDelete(); }
   };
 
   const handleToggleHidden = async (wish) => {
       const newState = !wish.is_hidden;
       setInternalWishes(prev => prev.map(w => w.id === wish.id ? { ...w, is_hidden: newState } : w));
-      const { error } = await supabase.from('wishes').update({ is_hidden: newState }).eq('id', wish.id);
-      if (error) {
-          toast.error("Error al actualizar");
-          if (onDelete) onDelete(); 
-      } else {
-          toast.success(newState ? "Deseo ocultado del grupo" : "Deseo visible para el grupo");
-      }
+      await supabase.from('wishes').update({ is_hidden: newState }).eq('id', wish.id);
+      toast.success(newState ? "Ocultado" : "Visible");
   };
 
   const handleUpdate = async (e) => {
     e.preventDefault();
     if (!formData.title.trim()) return;
     setLoadingEdit(true);
-
-    const { error } = await supabase
-      .from('wishes')
-      .update({
-        title: formData.title,
-        details: formData.details,
-        link: formData.link,
-        priority: parseInt(formData.priority),
-        price: formData.price 
-      })
-      .eq('id', editingWish.id);
-
+    const { error } = await supabase.from('wishes').update({
+        title: formData.title, details: formData.details, link: formData.link,
+        priority: parseInt(formData.priority), price: formData.price 
+      }).eq('id', editingWish.id);
     setLoadingEdit(false);
-    if (error) toast.error("Error: " + error.message);
-    else {
-      toast.success("¡Deseo actualizado!");
-      setEditingWish(null);
-      if (onDelete) onDelete();
-    }
+    if (error) toast.error(error.message);
+    else { toast.success("Actualizado"); setEditingWish(null); if (onDelete) onDelete(); }
   };
 
   return (
     <>
+      {/* MODALS */}
       {mounted && editingWish && createPortal(
-        <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setEditingWish(null)}>
-          <div className="bg-surface border border-border w-full max-w-lg rounded-3xl p-8 shadow-2xl relative" onClick={e => e.stopPropagation()}>
-            <h3 className="text-2xl font-bold text-text-main mb-6 flex items-center gap-2">✏️ Editar Deseo</h3>
-            <form onSubmit={handleUpdate} className="space-y-5">
-              <div>
-                <label className="input-label">Título</label>
-                <input className="cyber-input" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} />
-              </div>
-              <div>
-                <label className="input-label">Detalles</label>
-                <textarea className="cyber-input h-24 resize-none" value={formData.details} onChange={(e) => setFormData({...formData, details: e.target.value})} />
-              </div>
+        <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in" onClick={() => setEditingWish(null)}>
+          <div className="bg-surface border border-border w-full max-w-lg rounded-3xl p-6 shadow-2xl relative" onClick={e => e.stopPropagation()}>
+            <h3 className="text-xl font-bold text-text-main mb-4">✏️ Editar</h3>
+            <form onSubmit={handleUpdate} className="space-y-4">
+              <div><label className="input-label">Título</label><input className="cyber-input" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} /></div>
+              <div><label className="input-label">Detalles</label><textarea className="cyber-input h-20 resize-none" value={formData.details} onChange={(e) => setFormData({...formData, details: e.target.value})} /></div>
               <div className="grid grid-cols-2 gap-4">
-                 <div>
-                    <label className="input-label">Prioridad</label>
-                    <select className="cyber-input cursor-pointer" value={formData.priority} onChange={(e) => setFormData({...formData, priority: e.target.value})}>
-                      <option value="1">🔥 Alta</option>
-                      <option value="2">⭐ Media</option>
-                      <option value="3">🧊 Baja</option>
-                    </select>
-                 </div>
-                 <div>
-                    <label className="input-label">Link</label>
-                    <input className="cyber-input" placeholder="https://..." value={formData.link} onChange={(e) => setFormData({...formData, link: e.target.value})} />
-                 </div>
+                 <div><label className="input-label">Prioridad</label><select className="cyber-input" value={formData.priority} onChange={(e) => setFormData({...formData, priority: e.target.value})}><option value="1">🔥 Alta</option><option value="2">⭐ Media</option><option value="3">🧊 Baja</option></select></div>
+                 <div><label className="input-label">Link</label><input className="cyber-input" value={formData.link} onChange={(e) => setFormData({...formData, link: e.target.value})} /></div>
               </div>
-              <div className="flex gap-3 mt-8 pt-4 border-t border-border">
-                <button type="button" onClick={() => setEditingWish(null)} className="flex-1 py-3 rounded-xl bg-surface-highlight border border-border text-text-muted hover:bg-surface transition-colors font-bold text-xs uppercase tracking-wide">Cancelar</button>
-                <button type="submit" disabled={loadingEdit} className="flex-1 py-3 rounded-xl bg-purple-600 text-white font-bold hover:bg-purple-500 transition-colors disabled:opacity-50 text-xs uppercase tracking-wide shadow-lg shadow-purple-500/20">{loadingEdit ? 'Guardando...' : 'Guardar Cambios'}</button>
+              <div className="flex gap-2 mt-6 pt-4 border-t border-white/5">
+                <button type="button" onClick={() => setEditingWish(null)} className="flex-1 btn-primary bg-transparent border border-white/10 hover:bg-white/5">Cancelar</button>
+                <button type="submit" disabled={loadingEdit} className="flex-1 btn-primary">{loadingEdit ? '...' : 'Guardar'}</button>
               </div>
             </form>
           </div>
-        </div>,
-        document.body
+        </div>, document.body
       )}
-
       {mounted && selectedImage && createPortal(
-        <div className="fixed inset-0 bg-black/95 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200 backdrop-blur-xl" onClick={() => setSelectedImage(null)}>
-          <button className="fixed top-6 right-6 z-[10000] bg-white/10 text-white w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/20 transition-colors backdrop-blur-md" onClick={(e) => { e.stopPropagation(); setSelectedImage(null); }}>✕</button>
-          <div className="relative max-w-5xl max-h-[90vh] p-2">
-            <img src={selectedImage} alt="Zoom" className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.5)]" />
-          </div>
-        </div>,
-        document.body
+        <div className="fixed inset-0 bg-black/95 z-[9999] flex items-center justify-center p-4 animate-in fade-in backdrop-blur-xl" onClick={() => setSelectedImage(null)}>
+          <button className="fixed top-4 right-4 bg-white/10 text-white w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/20" onClick={() => setSelectedImage(null)}>✕</button>
+          <img src={selectedImage} alt="Zoom" className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl" />
+        </div>, document.body
       )}
+      
+      {/* ORDENAMIENTO ESTILO DARK MEJORADO */}
+      <div className="flex justify-end mb-6 relative z-20">
+          <div className="relative group">
+            {/* Se fuerza el fondo oscuro (#151923) para evitar el blanco en modo nocturno */}
+            <select 
+                value={sortOption} 
+                onChange={(e) => setSortOption(e.target.value)} 
+                className="appearance-none bg-[#151923] text-gray-200 text-xs font-bold border border-purple-500/30 rounded-xl pl-4 pr-10 py-2.5 cursor-pointer hover:border-purple-500/60 hover:bg-[#1A1F2E] shadow-lg outline-none transition-all"
+            >
+                <option value="newest">A-Z Alfabetico</option>
+                <option value="fewest">Menos deseos</option>
+            </select>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-purple-400"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="m6 9 6 6 6-6"/></svg></div>
+          </div>
+      </div>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Object.values(groupedWishes).map((userGroup) => {
-            const isOpen = expandedGroups[userGroup.id]; 
+        <div className="flex flex-col gap-10">
+          {groupedWishesArray.map((userGroup) => {
+            const isOpen = expandedUsers[userGroup.id]; 
             const isMyGroup = userGroup.id === currentUser?.id;
+            const wishCount = userGroup.wishes.length;
+            const progress = Math.min((wishCount / 5) * 100, 100);
+            const progressColor = wishCount === 0 ? 'bg-red-500' : wishCount < 3 ? 'bg-yellow-500' : 'bg-emerald-500 candy-stripe';
 
             return (
-              <Fragment key={userGroup.id}>
-                <div className="col-span-full mt-6 first:mt-0">
-                    <button onClick={() => toggleGroup(userGroup.id)} className={`w-full flex items-center justify-between p-3 pl-4 pr-5 rounded-2xl border transition-all duration-300 group ${isOpen ? 'bg-purple-500/10 border-purple-500/30' : 'bg-surface/60 border-border hover:bg-surface-highlight hover:border-text-muted/20'}`}>
-                      <div className="flex items-center gap-4">
-                          <Avatar seed={userGroup.avatarSeed} style={userGroup.avatarStyle} size="lg" className="ring-2 ring-offset-2 ring-offset-background ring-transparent group-hover:ring-purple-500/50 transition-all" />
-                          <div className="text-left">
-                              <h3 className={`text-lg font-bold transition-colors tracking-tight ${isOpen ? 'text-text-main' : 'text-text-muted group-hover:text-text-main'}`}>{userGroup.name}</h3>
-                              <p className="text-[10px] text-text-muted font-mono uppercase tracking-widest flex items-center gap-2 mt-0.5">
-                                  <span>{userGroup.wishes.length} deseo{userGroup.wishes.length !== 1 ? 's' : ''}</span>
-                                  {isMyGroup && <span className="text-purple-400 font-bold bg-purple-500/10 px-2 rounded-full hidden sm:inline-block">TU LISTA</span>}
-                              </p>
-                          </div>
-                      </div>
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center border border-border transition-all duration-300 ${isOpen ? 'bg-text-main text-background rotate-180' : 'bg-background text-text-muted group-hover:bg-surface-highlight group-hover:text-text-main'}`}>▼</div>
-                    </button>
-                    {isOpen && userGroup.wishes.length === 0 && <div className="text-center py-10 text-text-muted text-sm border-2 border-dashed border-border rounded-2xl mt-4 bg-background/[0.02]">No hay deseos visibles aquí.</div>}
+              <div key={userGroup.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div onClick={() => toggleUser(userGroup.id)} className="flex items-center justify-between mb-4 cursor-pointer group select-none">
+                    <div className="flex items-center gap-4">
+                        <Avatar seed={userGroup.avatarSeed} style={userGroup.avatarStyle} size="lg" className="ring-2 ring-offset-2 ring-offset-background ring-transparent group-hover:ring-purple-500/50 transition-all" />
+                        <div>
+                            <h3 className="text-xl font-bold text-text-main flex items-center gap-2">
+                                {userGroup.name}
+                                {isMyGroup && <span className="bg-purple-500/20 text-purple-300 text-[9px] px-2 py-0.5 rounded-full border border-purple-500/30">TÚ</span>}
+                            </h3>
+                            <div className="flex items-center gap-2 mt-1 opacity-70 group-hover:opacity-100 transition-opacity">
+                                <div className="w-24 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                    <div className={`h-full ${progressColor} transition-all duration-1000`} style={{ width: `${progress}%` }}></div>
+                                </div>
+                                <span className="text-[10px] font-mono text-text-muted">{wishCount} deseos</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className={`w-8 h-8 rounded-full border border-white/5 flex items-center justify-center transition-transform duration-300 ${isOpen ? 'rotate-180 bg-white/10' : 'group-hover:bg-white/5'}`}>▼</div>
                 </div>
 
                 {isOpen && (
-                  <SortableContext items={userGroup.wishes.map(w => w.id)} strategy={rectSortingStrategy} disabled={!isMyGroup}>
-                    {userGroup.wishes.map((wish) => {
-                      const isMine = currentUser?.id === wish.user_id;
-                      return (
-                        <SortableWishCard key={wish.id} wish={wish} disabled={!isMyGroup}>
-                            <MemoizedWishCardItem 
-                              wish={wish}
-                              isMine={isMine}
-                              onEdit={setEditingWish}
-                              onDelete={handleDelete}
-                              onImageClick={setSelectedImage}
-                              onToggleHidden={handleToggleHidden}
-                              dragListeners={null} 
-                            />
-                        </SortableWishCard>
-                      );
-                    })}
-                  </SortableContext>
+                    <div className="relative group/carousel">
+                        {/* INDICADOR MOVIL (Solo aparece si hay > 1 deseo) */}
+                        {wishCount > 1 && (
+                            <div className="md:hidden flex items-center gap-2 mb-2 px-1 animate-pulse opacity-70">
+                                <span className="text-[10px] uppercase tracking-widest text-purple-400 font-bold">👈 Desliza para ver más 👉</span>
+                            </div>
+                        )}
+
+                        {wishCount === 0 ? (
+                             <div className="py-8 px-4 bg-white/[0.02] border border-dashed border-white/5 rounded-2xl flex flex-col items-center justify-center text-center">
+                                 <div className="text-3xl mb-2 grayscale opacity-40">🌵</div>
+                                 <p className="text-text-muted text-sm">Aún no hay deseos aquí.</p>
+                             </div>
+                        ) : (
+                            <>
+                                <button 
+                                    onClick={() => scrollCarousel(userGroup.id, 'left')}
+                                    className="absolute -left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/50 backdrop-blur-md border border-white/10 text-white shadow-xl flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-all duration-300 hover:scale-110 hidden md:flex"
+                                >
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m15 18-6-6 6-6"/></svg>
+                                </button>
+
+                                <div 
+                                    id={`carousel-${userGroup.id}`}
+                                    className="flex overflow-x-auto gap-4 pb-6 pt-2 px-1 snap-x snap-mandatory scrollbar-thin scrollbar-track-transparent scrollbar-thumb-purple-500/20 hover:scrollbar-thumb-purple-500/50 transition-colors"
+                                >
+                                    <SortableContext items={userGroup.wishes.map(w => w.id)} strategy={horizontalListSortingStrategy} disabled={!isMyGroup}>
+                                        {userGroup.wishes.map((wish) => {
+                                            const isMine = currentUser?.id === wish.user_id;
+                                            return (
+                                                <SortableWishCard key={wish.id} wish={wish} disabled={!isMyGroup}>
+                                                    <MemoizedWishCardItem 
+                                                        wish={wish}
+                                                        isMine={isMine}
+                                                        onEdit={setEditingWish}
+                                                        onDelete={handleDelete}
+                                                        onImageClick={setSelectedImage}
+                                                        onToggleHidden={handleToggleHidden}
+                                                        dragListeners={null} 
+                                                    />
+                                                </SortableWishCard>
+                                            );
+                                        })}
+                                    </SortableContext>
+                                    <div className="w-4 shrink-0"></div>
+                                </div>
+
+                                <button 
+                                    onClick={() => scrollCarousel(userGroup.id, 'right')}
+                                    className="absolute -right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/50 backdrop-blur-md border border-white/10 text-white shadow-xl flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-all duration-300 hover:scale-110 hidden md:flex"
+                                >
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m9 18 6-6-6-6"/></svg>
+                                </button>
+                            </>
+                        )}
+                        
+                        {/* Gradientes laterales para indicar scroll visualmente en móviles */}
+                        {wishCount > 2 && (
+                            <>
+                                <div className="absolute left-0 top-0 bottom-6 w-8 bg-gradient-to-r from-background to-transparent pointer-events-none z-10 lg:hidden"></div>
+                                <div className="absolute right-0 top-0 bottom-6 w-8 bg-gradient-to-l from-background to-transparent pointer-events-none z-10 lg:hidden"></div>
+                            </>
+                        )}
+                    </div>
                 )}
-              </Fragment>
+                
+                <div className="h-px bg-gradient-to-r from-transparent via-white/5 to-transparent mt-2"></div>
+              </div>
             );
           })}
         </div>
       </DndContext>
+      
+      <style jsx global>{`
+        .scrollbar-thin::-webkit-scrollbar { height: 6px; }
+        .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+        .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(139, 92, 246, 0.2); border-radius: 10px; }
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: rgba(139, 92, 246, 0.5); }
+      `}</style>
     </>
   );
 }
