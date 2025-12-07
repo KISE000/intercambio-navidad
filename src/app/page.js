@@ -177,11 +177,15 @@ export default function Home() {
     </div>
   );
 
-  // --- SCROLL TO TOP WHEN GROUP IS SELECTED (FIX MOBILE ZOOM) ---
+  // --- FIX SCROLL & ZOOM EN MOVIL AL ENTRAR AL GRUPO ---
   useEffect(() => {
     if (selectedGroup) {
-      // Usamos instant para que no haya animación de desplazamiento, sino "salto" directo
-      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      // Pequeño delay para asegurar que el DOM se pintó antes de hacer scroll
+      // "instant" hace que sea un salto directo, evitando el efecto de deslizamiento innecesario
+      setTimeout(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      }, 50);
+      
       fetchMatch();
     }
   }, [selectedGroup]);
@@ -359,7 +363,7 @@ export default function Home() {
     <div className="min-h-screen bg-background text-text-main font-sans pb-20 relative selection:bg-purple-500/30 transition-colors duration-300">
       <SnowBackground />
 
-      {/* HEADER */}
+      {/* HEADER STICKY GLASS MEJORADO */}
       <header className="sticky top-0 z-50 bg-surface/70 backdrop-blur-xl border-b border-white/10 shadow-lg shadow-purple-500/5 px-4 md:px-6 py-4 flex justify-between items-center transition-all duration-300">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-xl shadow-lg shadow-purple-500/20">🎄</div>

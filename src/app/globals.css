@@ -35,8 +35,10 @@
 html {
   background-color: var(--bg-app); 
   height: 100%;
-  /* Previene el rebote elástico en Mac/iOS si no es necesario */
-  overscroll-behavior-y: none; 
+  
+  /* IMPORTANTE: 'auto' permite el "pull-to-refresh" nativo de iOS */
+  overscroll-behavior-y: auto; 
+  
   /* Evita zoom automático al rotar */
   -webkit-text-size-adjust: 100%;
 }
@@ -92,7 +94,7 @@ h1, h2, h3, .font-display {
     focus:border-primary focus:ring-1 focus:ring-primary 
     focus:shadow-[0_0_20px_rgba(139,92,246,0.25)];
     
-    /* FIX iOS: Evita zoom automático al enfocar */
+    /* FIX CRÍTICO iOS: Forzar 16px evita que el iPhone haga zoom al escribir */
     font-size: 16px !important; 
   }
 
