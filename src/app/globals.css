@@ -35,6 +35,10 @@
 html {
   background-color: var(--bg-app); 
   height: 100%;
+  /* Previene el rebote elástico en Mac/iOS si no es necesario */
+  overscroll-behavior-y: none; 
+  /* Evita zoom automático al rotar */
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
@@ -45,6 +49,9 @@ body {
   background-size: 100% 60vh;
   background-repeat: no-repeat;
   opacity: 1; 
+  /* Asegura que nada se salga horizontalmente */
+  width: 100%;
+  position: relative;
 }
 
 /* Fondos complejos */
@@ -84,6 +91,9 @@ h1, h2, h3, .font-display {
     outline-none transition-all duration-300 shadow-sm
     focus:border-primary focus:ring-1 focus:ring-primary 
     focus:shadow-[0_0_20px_rgba(139,92,246,0.25)];
+    
+    /* FIX iOS: Evita zoom automático al enfocar */
+    font-size: 16px !important; 
   }
 
   .cyber-input::placeholder {
@@ -171,25 +181,7 @@ h1, h2, h3, .font-display {
     overflow: hidden;
 }
 
-/* --- 3. CURSOR PARTICLES --- */
-.cursor-trail {
-  position: fixed;
-  pointer-events: none;
-  width: 6px;
-  height: 6px;
-  background-color: var(--primary);
-  border-radius: 50%;
-  animation: particleFade 1s linear forwards;
-  z-index: 9999;
-  box-shadow: 0 0 10px var(--primary);
-}
-
-@keyframes particleFade {
-  0% { opacity: 1; transform: scale(1); }
-  100% { opacity: 0; transform: scale(0) translateY(20px); }
-}
-
-/* --- 4. SKELETON SHIMMER --- */
+/* --- 3. SKELETON SHIMMER --- */
 .skeleton-shimmer {
     background: linear-gradient(90deg, 
         rgba(255,255,255, 0.03) 25%, 
@@ -205,7 +197,7 @@ h1, h2, h3, .font-display {
     100% { background-position: 0 50%; }
 }
 
-/* --- 5. VIEW TRANSITIONS --- */
+/* --- 4. VIEW TRANSITIONS --- */
 .slide-in-right {
     animation: slideInRight 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
@@ -223,16 +215,13 @@ h1, h2, h3, .font-display {
     to { opacity: 1; transform: translateX(0); }
 }
 
-/* --- 6. MASONRY GRID (Estilo Pinterest) --- */
-.masonry-grid {
-    display: flex;
-    width: auto;
-}
-.masonry-grid_column {
-    background-clip: padding-box;
-}
+/* --- 5. SCROLLBAR ESTILIZADO (Para la WishList) --- */
+.scrollbar-thin::-webkit-scrollbar { height: 6px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(139, 92, 246, 0.2); border-radius: 10px; }
+.scrollbar-thin::-webkit-scrollbar-thumb:hover { background: rgba(139, 92, 246, 0.5); }
 
-/* --- 7. CANDY CANE PROGRESS BAR --- */
+/* --- 6. CANDY CANE BAR --- */
 @keyframes barberpole {
     100% { background-position: 100% 100%; }
 }
