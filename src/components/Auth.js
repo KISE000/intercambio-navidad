@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { toast } from 'sonner'
+import confetti from 'canvas-confetti'
 
 export default function Auth({ theme, toggleTheme }) {
   const [loading, setLoading] = useState(false)
@@ -9,8 +10,42 @@ export default function Auth({ theme, toggleTheme }) {
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
   const [isSignUp, setIsSignUp] = useState(false)
-  
   const [showPassword, setShowPassword] = useState(false)
+  
+  // Estado para la animación de error
+  const [shakeError, setShakeError] = useState(false)
+
+  // --- FUNCIÓN DE CONFETI DE ÉXITO ---
+  const triggerSuccessConfetti = () => {
+    const duration = 3000;
+    const end = Date.now() + duration;
+
+    (function frame() {
+      confetti({
+        particleCount: 5,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0 },
+        colors: theme === 'dark' ? ['#A855F7', '#EC4899', '#ffffff'] : ['#3B82F6', '#6366F1', '#ffffff']
+      });
+      confetti({
+        particleCount: 5,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1 },
+        colors: theme === 'dark' ? ['#A855F7', '#EC4899', '#ffffff'] : ['#3B82F6', '#6366F1', '#ffffff']
+      });
+
+      if (Date.now() < end) {
+        requestAnimationFrame(frame);
+      }
+    }());
+  }
+
+  const triggerErrorShake = () => {
+      setShakeError(true);
+      setTimeout(() => setShakeError(false), 500); // Duración de la animación CSS
+  }
 
   const handleAuth = async (e) => {
     e.preventDefault()
@@ -29,6 +64,7 @@ export default function Auth({ theme, toggleTheme }) {
           },
         })
         if (error) throw error
+        triggerSuccessConfetti();
         toast.success('¡Registro exitoso! Revisa tu correo o inicia sesión.')
         setIsSignUp(false)
       } else {
@@ -37,8 +73,11 @@ export default function Auth({ theme, toggleTheme }) {
           password,
         })
         if (error) throw error
+        // Login exitoso: Confeti antes de desmontar/redirigir
+        triggerSuccessConfetti();
       }
     } catch (error) {
+      triggerErrorShake(); // ACTIVAR VIBRACIÓN
       toast.error(error.message || 'Error de autenticación')
     } finally {
       setLoading(false)
@@ -46,7 +85,10 @@ export default function Auth({ theme, toggleTheme }) {
   }
 
   const handleResetPassword = async () => {
-    if (!email) return toast.warning('Escribe tu correo en el campo de arriba primero.')
+    if (!email) {
+        triggerErrorShake();
+        return toast.warning('Escribe tu correo en el campo de arriba primero.')
+    }
     
     setLoading(true)
     try {
@@ -65,28 +107,30 @@ export default function Auth({ theme, toggleTheme }) {
   return (
     <div className="flex flex-col items-center justify-center w-full px-4 relative z-10 animate-in fade-in zoom-in-95 duration-500 min-h-[85vh]">
       
-      {/* Botón Flotante de Tema */}
-      <button 
-        onClick={toggleTheme}
-        className="absolute top-0 right-4 md:right-0 md:-top-12 w-10 h-10 rounded-full bg-surface border border-border flex items-center justify-center text-xl shadow-lg hover:scale-110 transition-transform z-50 text-text-main"
-        title={theme === 'dark' ? 'Activar Modo Hielo' : 'Activar Modo Cyberpunk'}
-      >
-        {theme === 'dark' ? '☀️' : '🌙'}
-      </button>
-      
       {/* Contenedor Glow */}
       <div className="relative group w-full max-w-lg">
         {/* Glow de fondo */}
         <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 rounded-[2rem] opacity-75 blur-xl group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
         
-        {/* Tarjeta Principal (Adaptable) */}
-        <div className="relative bg-surface backdrop-blur-xl border border-border rounded-[1.7rem] shadow-2xl p-8 md:p-12 overflow-hidden transition-colors duration-300">
+        {/* Tarjeta Principal - AQUÍ APLICAMOS LA CLASE SHAKE CONDICIONAL */}
+        <div className={`relative bg-surface backdrop-blur-xl border border-border rounded-[1.7rem] shadow-2xl p-8 md:p-12 overflow-hidden transition-all duration-300 ${shakeError ? 'animate-shake' : ''}`}>
             
+            {/* BOTÓN DE TEMA INTEGRADO */}
+            <button 
+                onClick={toggleTheme}
+                className="absolute top-6 right-6 p-2 rounded-full text-text-muted hover:text-text-main hover:bg-white/5 transition-all duration-300 z-50 group/theme"
+                title={theme === 'dark' ? 'Activar Modo Luz' : 'Activar Modo Cyberpunk'}
+            >
+                <span className="transform group-hover/theme:rotate-12 inline-block transition-transform duration-300 text-xl">
+                    {theme === 'dark' ? '☀️' : '🌙'}
+                </span>
+            </button>
+
             {/* Ruido sutil de fondo */}
             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 pointer-events-none"></div>
             
             {/* Header */}
-            <div className="relative z-10 text-center mb-8">
+            <div className="relative z-10 text-center mb-8 mt-2">
               <div className="inline-block relative">
                 <div className="text-6xl mb-4 drop-shadow-md animate-bounce delay-700">
                   {isSignUp ? '🧬' : '🎅'}

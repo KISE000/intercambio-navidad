@@ -26,6 +26,10 @@ export default function Home() {
   // --- THEME STATE ---
   const [theme, setTheme] = useState('dark');
   
+  // --- EASTER EGG STATE (THE GRINCH) ---
+  const [themeToggleCount, setThemeToggleCount] = useState(0);
+  const [lastToggleTime, setLastToggleTime] = useState(0);
+  
   const router = useRouter();
 
   const [snowflakes, setSnowflakes] = useState([]);
@@ -73,18 +77,69 @@ export default function Home() {
     }
   }, []);
 
+  // --- LÓGICA DE TEMA MEJORADA + EASTER EGG GRINCH ---
   const toggleTheme = () => {
+    // 1. Lógica Anti-Spam / Easter Egg
+    const now = Date.now();
+    const timeDiff = now - lastToggleTime;
+    
+    // Si clickea muy rápido (< 800ms entre clicks)
+    if (timeDiff < 800) {
+        const newCount = themeToggleCount + 1;
+        setThemeToggleCount(newCount);
+
+        // ACTIVA EL MODO GRINCH
+        if (newCount >= 6) {
+            document.documentElement.classList.add('grinch-mode');
+            toast.error('🤢 ¡ESTÁS MAREANDO AL SISTEMA!', {
+                description: 'Modo Grinch activado por molestar.',
+                duration: 4000,
+                style: { background: '#1a4d2e', color: '#86efac', border: '1px solid #4ade80' }
+            });
+            
+            // Resetear después de 4 segundos
+            setTimeout(() => {
+                document.documentElement.classList.remove('grinch-mode');
+                setThemeToggleCount(0);
+            }, 4000);
+            return; // No cambiamos el tema real, solo castigamos
+        }
+    } else {
+        // Reset si pasa tiempo
+        setThemeToggleCount(1);
+    }
+    setLastToggleTime(now);
+
+    // 2. Cambio Normal de Tema
     const newTheme = theme === 'dark' ? 'light' : 'dark';
     setTheme(newTheme);
     localStorage.setItem('theme', newTheme);
     
-    if (newTheme === 'light') {
+    const isDark = newTheme === 'dark';
+
+    if (!isDark) {
       document.documentElement.classList.add('light');
-      toast.success('Modo Claro activado ☀️');
     } else {
       document.documentElement.classList.remove('light');
-      toast.success('Modo Cyberpunk activado 🌙');
     }
+
+    toast(isDark ? '🌙 Modo Cyberpunk' : '☀️ Modo Claro', {
+        id: 'theme-toggle-toast', 
+        duration: 1500, 
+        description: isDark ? 'Protocolo nocturno activado' : 'Protocolo diurno activado',
+        style: isDark ? {
+            background: 'rgba(11, 14, 20, 0.95)',
+            border: '1px solid #A855F7',
+            color: '#fff',
+            backdropFilter: 'blur(10px)'
+        } : {
+            background: 'rgba(255, 255, 255, 0.95)',
+            border: '1px solid #3B82F6',
+            color: '#1e293b',
+            backdropFilter: 'blur(10px)'
+        },
+    });
+
     setIsMenuOpen(false);
     setIsMobileMenuOpen(false);
   };

@@ -78,9 +78,7 @@ h1, h2, h3, .font-display {
 }
 
 @layer components {
-  /* Input con Efecto NEÓN y Glow 
-     FIX: Quitamos placeholder del @apply y usamos CSS estándar para evitar el error.
-  */
+  /* Input con Efecto NEÓN y Glow */
   .cyber-input {
     @apply w-full bg-[var(--input-bg)] backdrop-blur-md border border-border text-text-main rounded-xl px-4 py-3 
     outline-none transition-all duration-300 shadow-sm
@@ -88,15 +86,12 @@ h1, h2, h3, .font-display {
     focus:shadow-[0_0_20px_rgba(139,92,246,0.25)];
   }
 
-  /* Estilo del Placeholder seguro */
   .cyber-input::placeholder {
     color: var(--text-muted);
     opacity: 0.5;
   }
 
-  /* Nuevo Panel Glassmorphism Realista
-     FIX: Quitamos bg-surface/60 del @apply y usamos color-mix para la transparencia.
-  */
+  /* Nuevo Panel Glassmorphism Realista */
   .glass-panel {
     @apply backdrop-blur-2xl border border-white/10 shadow-2xl;
     background-color: color-mix(in srgb, var(--bg-card), transparent 40%);
@@ -125,7 +120,8 @@ h1, h2, h3, .font-display {
   }
 }
 
-/* Animaciones */
+/* --- ANIMACIONES AVANZADAS --- */
+
 .animate-fall {
   animation: fall 10s linear infinite;
   color: var(--snow-color);
@@ -136,7 +132,7 @@ h1, h2, h3, .font-display {
   animation: menuIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Animación Shimmer para la barra de progreso */
+/* Shimmer */
 @keyframes shimmer {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
@@ -149,4 +145,80 @@ h1, h2, h3, .font-display {
 @keyframes menuIn {
   0% { opacity: 0; transform: scale(0.95) translateY(-10px); }
   100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* --- 1. SHAKE EFFECT (ERROR) --- */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-8px) rotate(-1deg); }
+  50% { transform: translateX(8px) rotate(1deg); }
+  75% { transform: translateX(-4px); }
+}
+
+.animate-shake {
+  animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+  border-color: #ef4444 !important; /* Rojo de error */
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.4) !important;
+}
+
+/* --- 2. GRINCH MODE (EASTER EGG) --- */
+.grinch-mode {
+  filter: hue-rotate(90deg) contrast(1.2) sepia(0.3) !important;
+  transition: filter 1s ease;
+}
+
+.grinch-mode body {
+    overflow: hidden;
+}
+
+/* --- 3. CURSOR PARTICLES --- */
+.cursor-trail {
+  position: fixed;
+  pointer-events: none;
+  width: 6px;
+  height: 6px;
+  background-color: var(--primary);
+  border-radius: 50%;
+  animation: particleFade 1s linear forwards;
+  z-index: 9999;
+  box-shadow: 0 0 10px var(--primary);
+}
+
+@keyframes particleFade {
+  0% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0) translateY(20px); }
+}
+
+/* --- 4. SKELETON SHIMMER --- */
+.skeleton-shimmer {
+    background: linear-gradient(90deg, 
+        rgba(255,255,255, 0.03) 25%, 
+        rgba(255,255,255, 0.08) 37%, 
+        rgba(255,255,255, 0.03) 63%
+    );
+    background-size: 400% 100%;
+    animation: skeleton-loading 1.4s ease infinite;
+}
+
+@keyframes skeleton-loading {
+    0% { background-position: 100% 50%; }
+    100% { background-position: 0 50%; }
+}
+
+/* --- 5. VIEW TRANSITIONS --- */
+.slide-in-right {
+    animation: slideInRight 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+.slide-in-left {
+    animation: slideInLeft 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes slideInRight {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInLeft {
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
 }
