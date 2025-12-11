@@ -253,7 +253,7 @@ export default function GroupSelector({ session, onSelectGroup, onLogout, theme,
           <button 
               onClick={toggleTheme}
               className="absolute top-6 right-6 p-2 rounded-full text-text-muted hover:text-text-main hover:bg-white/5 transition-all duration-300 z-50 group/theme"
-              title={theme === 'dark' ? 'Activar Modo Luz' : 'Activar Modo Cyberpunk'}
+              title={theme === 'dark' ? 'Activar Modo Luz' : 'Activar Modo Oscuro'}
           >
               <span className="transform group-hover/theme:rotate-12 inline-block transition-transform duration-300 text-xl">
                   {theme === 'dark' ? '☀️' : '🌙'}

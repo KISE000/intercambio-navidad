@@ -14,6 +14,8 @@ import AvatarSelector from "../components/AvatarSelector";
 import GroupSettingsModal from "../components/GroupSettingsModal";
 import ShareTicketModal from "../components/ShareTicketModal";
 import RulesModal from "../components/RulesModal";
+import MobileMenu from "../components/MobileMenu";
+
 
 export default function Home() {
   const [session, setSession] = useState(null);
@@ -24,7 +26,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState("mine");
 
   // --- THEME STATE ---
-  const [theme, setTheme] = useState("dark");
+  const [theme, setTheme] = useState("light");
 
   // --- EASTER EGG STATE (THE GRINCH) ---
   const [themeToggleCount, setThemeToggleCount] = useState(0);
@@ -72,7 +74,7 @@ export default function Home() {
 
   // --- 0. Inicializar Tema ---
   useEffect(() => {
-    const savedTheme = localStorage.getItem("theme") || "dark";
+    const savedTheme = localStorage.getItem("theme") || "light";
     setTheme(savedTheme);
     if (savedTheme === "light") {
       document.documentElement.classList.add("light");
@@ -131,26 +133,7 @@ export default function Home() {
       document.documentElement.classList.remove("light");
     }
 
-    toast(isDark ? "🌙 Modo Cyberpunk" : "☀️ Modo Claro", {
-      id: "theme-toggle-toast",
-      duration: 1500,
-      description: isDark
-        ? "Protocolo nocturno activado"
-        : "Protocolo diurno activado",
-      style: isDark
-        ? {
-            background: "rgba(11, 14, 20, 0.95)",
-            border: "1px solid #A855F7",
-            color: "#fff",
-            backdropFilter: "blur(10px)",
-          }
-        : {
-            background: "rgba(255, 255, 255, 0.95)",
-            border: "1px solid #3B82F6",
-            color: "#1e293b",
-            backdropFilter: "blur(10px)",
-          },
-    });
+
 
     setIsMenuOpen(false);
     setIsMobileMenuOpen(false);
@@ -196,7 +179,9 @@ export default function Home() {
       // "instant" hace que sea un salto directo, evitando el efecto de deslizamiento innecesario
       setTimeout(() => {
         window.scrollTo({ top: 0, left: 0, behavior: "instant" });
-      }, 50);
+        // Intento secundario por si el renderizado tarda más
+        requestAnimationFrame(() => window.scrollTo(0, 0));
+      }, 150);
 
       fetchMatch();
     }
@@ -545,7 +530,7 @@ export default function Home() {
                     {theme === "dark" ? "☀️" : "🌙"}
                   </span>
                   <span>
-                    {theme === "dark" ? "Modo Claro" : "Modo Cyberpunk"}
+                    {theme === "dark" ? "Modo Claro" : "Modo Oscuro"}
                   </span>
                 </button>
                 <button
@@ -624,176 +609,28 @@ export default function Home() {
         </div>
       </header>
 
-      {/* MENÚ MÓVIL */}
-      {isMobileMenuOpen && (
-        <>
-          <div
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] animate-in fade-in duration-200"
-            onClick={() => setIsMobileMenuOpen(false)}
-          />
-          <div className="fixed top-0 right-0 bottom-0 w-[85vw] max-w-sm bg-surface border-l border-border z-[70] shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col">
-            <div className="p-6 border-b border-border bg-surface-highlight/50 flex justify-between items-center relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 to-transparent pointer-events-none"></div>
-              <h2 className="text-xl font-bold text-text-main relative z-10 flex items-center gap-2">
-                <span className="text-2xl">🎄</span> Menú
-              </h2>
-              <button
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="w-10 h-10 rounded-xl bg-background hover:bg-surface-highlight flex items-center justify-center transition-colors relative z-10 border border-border"
-              >
-                <svg
-                  className="w-5 h-5 text-text-muted"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-            <div className="p-6 border-b border-border">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="relative">
-                  <div className="absolute -inset-2 bg-purple-500/20 rounded-full blur-md"></div>
-                  <Avatar
-                    seed={getUserAvatarSeed()}
-                    style={getUserAvatarStyle()}
-                    size="lg"
-                    className="relative"
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[10px] text-purple-400 font-bold uppercase tracking-widest mb-1">
-                    Cuenta Activa
-                  </p>
-                  <p className="text-base text-text-main font-medium truncate">
-                    {session.user.email}
-                  </p>
-                </div>
-              </div>
-              <div className="bg-background rounded-xl p-4 border border-border relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-2 opacity-10 text-5xl transform rotate-12 group-hover:rotate-0 transition-transform">
-                  🎁
-                </div>
-                <p className="text-[10px] text-text-muted uppercase tracking-widest mb-1">
-                  Grupo Actual
-                </p>
-                <p className="text-lg text-text-main font-bold tracking-tight">
-                  {selectedGroup.name}
-                </p>
-                {isAdmin && (
-                  <span className="text-[10px] text-yellow-500 font-bold bg-yellow-500/10 px-2 py-1 rounded border border-yellow-500/20 mt-2 inline-block">
-                    ADMINISTRADOR
-                  </span>
-                )}
-              </div>
-            </div>
+      {/* MENÚ MÓVIL NUEVO - MODULARIZADO */}
+      <MobileMenu 
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+        session={session}
+        selectedGroup={selectedGroup}
+        isAdmin={isAdmin}
+        theme={theme}
+        actions={{
+          openTicket: () => setIsTicketOpen(true),
+          openSettings: () => setIsSettingsModalOpen(true),
+          openAvatar: () => setIsAvatarSelectorOpen(true),
+          toggleTheme: toggleTheme,
+          invite: handleInvite,
+          openRules: () => setIsRulesOpen(true),
+          changeGroup: () => { setSelectedGroup(null); setIsMenuOpen(false); },
+          reportBug: handleBugReport,
+          logout: handleLogout
+        }}
+      />
 
-            {/* LISTA SCROLLABLE */}
-            <div className="p-4 space-y-2 overflow-y-auto flex-1 custom-scrollbar">
-              {isAdmin && (
-                <button
-                  onClick={() => {
-                    setIsSettingsModalOpen(true);
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="menu-item group py-4"
-                >
-                  <span className="menu-icon-box text-xl text-cyan-400">
-                    ⚙️
-                  </span>
-                  <span className="text-base">Panel Admin</span>
-                </button>
-              )}
-              <button
-                onClick={() => {
-                  setIsTicketOpen(true);
-                  setIsMobileMenuOpen(false);
-                }}
-                className="menu-item group py-4"
-              >
-                <span className="menu-icon-box text-xl text-emerald-400">
-                  🎫
-                </span>
-                <span className="text-base">Mi Ticket Navideño</span>
-              </button>
-              <button onClick={toggleTheme} className="menu-item group py-4">
-                <span className="menu-icon-box text-xl text-pink-400">
-                  {theme === "dark" ? "☀️" : "🌙"}
-                </span>
-                <span className="text-base">
-                  {theme === "dark" ? "Modo Claro" : "Modo Cyberpunk"}
-                </span>
-              </button>
-              <button
-                onClick={() => {
-                  setIsAvatarSelectorOpen(true);
-                  setIsMobileMenuOpen(false);
-                }}
-                className="menu-item group py-4"
-              >
-                <span className="menu-icon-box text-xl text-pink-400">🎨</span>
-                <span className="text-base">Personalizar Avatar</span>
-              </button>
-              <div className="h-px bg-border my-2"></div>
-              <button
-                onClick={() => {
-                  setSelectedGroup(null);
-                  setIsMobileMenuOpen(false);
-                }}
-                className="menu-item group py-4"
-              >
-                <span className="menu-icon-box text-xl text-slate-400">🔄</span>
-                <span className="text-base">Cambiar de Grupo</span>
-              </button>
 
-              <button
-                onClick={() => {
-                  setIsRulesOpen(true);
-                  setIsMobileMenuOpen(false);
-                }}
-                className="menu-item group py-4"
-              >
-                <span className="menu-icon-box text-xl text-indigo-400">
-                  ⚖️
-                </span>
-                <span className="text-base">Reglas del Juego</span>
-              </button>
-
-              <button
-                onClick={handleBugReport}
-                className="menu-item group py-4"
-              >
-                <span className="menu-icon-box text-xl text-orange-400">
-                  🐛
-                </span>
-                <span className="text-xs">Reportar Bug</span>
-              </button>
-            </div>
-
-            {/* FOOTER FIJO CON CERRAR SESIÓN DESTACADO */}
-            <div className="p-4 border-t border-border bg-surface-highlight/10 space-y-4">
-              <button
-                onClick={handleLogout}
-                className="w-full py-4 rounded-xl flex items-center justify-center gap-3 border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all duration-300 group"
-              >
-                <span className="text-xl">🚪</span>
-                <span className="font-bold uppercase tracking-wider text-sm">
-                  Cerrar Sesión
-                </span>
-              </button>
-              <p className="text-[10px] text-text-muted text-center font-mono uppercase tracking-widest">
-                iShop Navidad v1.3
-              </p>
-            </div>
-          </div>
-        </>
-      )}
 
       {/* HERO & STATS */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-8 mt-8 mb-12">

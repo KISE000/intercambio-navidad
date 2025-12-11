@@ -105,7 +105,7 @@ const MemoizedWishCardItem = memo(function WishCardItem({ wish, isMine, onEdit, 
   const opacityClass = isHidden ? 'opacity-60 grayscale-[0.8] border-dashed border-border' : '';
 
   return (
-    <div className={`relative backdrop-blur-md border rounded-3xl overflow-hidden group hover:-translate-y-1 transition-all duration-300 flex flex-col h-full w-full ${priority.container} ${opacityClass}`}>
+    <div className={`relative bg-surface backdrop-blur-md border rounded-3xl overflow-hidden group hover:-translate-y-1 transition-all duration-300 flex flex-col h-full w-full ${priority.container} ${opacityClass}`}>
       <div className={`absolute inset-0 ${priority.gradient} opacity-50 pointer-events-none`}></div>
 
       {isMine && (
@@ -138,7 +138,7 @@ const MemoizedWishCardItem = memo(function WishCardItem({ wish, isMine, onEdit, 
                     className={`w-8 h-8 flex items-center justify-center rounded-full transition-all duration-200 border group/btn
                       ${showMenu 
                         ? 'bg-purple-500 text-white border-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.4)]' 
-                        : 'bg-black/20 text-text-muted border-transparent hover:bg-surface-highlight hover:text-text-main hover:border-white/10'
+                        : 'bg-white/40 dark:bg-black/20 text-text-muted border-transparent hover:bg-surface-highlight hover:text-text-main hover:border-white/10'
                       } backdrop-blur-md`}
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
@@ -165,7 +165,7 @@ const MemoizedWishCardItem = memo(function WishCardItem({ wish, isMine, onEdit, 
       </div>
 
       <div 
-          className="relative h-40 overflow-hidden cursor-pointer group/img shrink-0 mt-3 mx-3 rounded-xl border border-white/5 bg-black/20 z-10"
+          className="relative h-40 overflow-hidden cursor-pointer group/img shrink-0 mt-3 mx-3 rounded-xl border border-white/5 bg-surface-highlight z-10"
           onClick={() => wish.image_url && onImageClick(wish.image_url)}
           onPointerDown={(e) => e.stopPropagation()} 
         >
@@ -427,11 +427,16 @@ export default function WishList({ wishes, currentUser, onDelete }) {
                                 {userGroup.name}
                                 {isMyGroup && <span className="bg-purple-500/20 text-purple-300 text-[9px] px-2 py-0.5 rounded-full border border-purple-500/30">TÚ</span>}
                             </h3>
-                            <div className="flex items-center gap-2 mt-1 opacity-70 group-hover:opacity-100 transition-opacity">
-                                <div className="w-24 h-1.5 bg-white/5 rounded-full overflow-hidden">
-                                    <div className={`h-full ${progressColor} transition-all duration-1000`} style={{ width: `${progress}%` }}></div>
-                                </div>
-                                <span className="text-[10px] font-mono text-text-muted">{wishCount} deseos</span>
+                            <div className="flex items-center gap-2 mt-1 opacity-80 group-hover:opacity-100 transition-opacity">
+                                <span className={`px-2.5 py-0.5 rounded-lg border text-[10px] font-bold uppercase tracking-widest ${
+                                    wishCount === 0 
+                                        ? 'border-red-500/20 bg-red-500/5 text-red-400' 
+                                        : wishCount < 3 
+                                            ? 'border-yellow-500/20 bg-yellow-500/5 text-yellow-400' 
+                                            : 'border-emerald-500/20 bg-emerald-500/5 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.1)]'
+                                }`}>
+                                    {wishCount} {wishCount === 1 ? 'Deseo' : 'Deseos'}
+                                </span>
                             </div>
                         </div>
                     </div>

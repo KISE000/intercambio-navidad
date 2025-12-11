@@ -236,7 +236,6 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
                   onChange={(e) => setTitle(e.target.value)}
                   maxLength={50}
                   required
-                  autoFocus
                 />
               </div>
             </div>
@@ -279,7 +278,7 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
                             relative flex flex-col items-center justify-center py-3 px-1 rounded-xl border transition-all duration-300 h-[60px]
                             ${priority === p.id 
                                 ? `${p.style} scale-[1.02] ring-1 ring-black/5 dark:ring-white/20` 
-                                : 'bg-background border-border text-text-muted hover:bg-surface-highlight hover:border-text-muted/30'
+                                : 'bg-surface border-border text-text-muted hover:bg-surface-highlight hover:border-text-muted/30'
                             }
                         `}
                     >
@@ -320,13 +319,13 @@ export default function WishForm({ session, onWishAdded, currentWishes, groupId 
             <label 
               className={`flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-300 relative overflow-hidden group/dropzone ${
                 imagePreview
-                  ? 'border-purple-500/50 bg-background' 
+                  ? 'border-purple-500/50 bg-surface' 
                   : 'border-border hover:border-purple-500 hover:bg-purple-500/5 hover:scale-[1.01]'
               }`}
             >
               {imagePreview ? (
                 <div className="relative w-full h-full group/preview">
-                  <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] z-0 rounded-2xl"></div>
+                  <div className="absolute inset-0 bg-surface/60 backdrop-blur-[2px] z-0 rounded-2xl"></div>
                   <img src={imagePreview} alt="Preview" className="relative z-10 w-full h-full object-contain p-4" />
                   <button 
                     onClick={clearImage}
