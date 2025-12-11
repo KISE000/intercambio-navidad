@@ -6,51 +6,68 @@
   /* --- TEMA DARK (CYBERPUNK ORIGINAL) --- */
   --bg-app: #050505;
   --bg-card: #151923;
-  --bg-card-highlight: #1A1F2E;
+  --bg-card-highlight: #1a1f2e;
   --primary: #8b5cf6;
   --text-main: #e2e8f0;
   --text-muted: #94a3b8;
   --border-color: rgba(255, 255, 255, 0.1);
-  --input-bg: rgba(11, 14, 20, 0.6); 
+  --input-bg: rgba(11, 14, 20, 0.6);
   --snow-color: #ffffff;
   --shadow-color: rgba(139, 92, 246, 0.15);
-  --font-space: 'Inter', sans-serif;
+  --font-space: "Inter", sans-serif;
 }
 
-/* --- TEMA LIGHT (EDICIÓN FROST / HIELO) --- */
+/* --- TEMA LIGHT (EDICIÓN PREMIUM / MEJORADO) --- */
 .light {
-  --bg-app: #f1f5f9;
+  /* Backgrounds más sofisticados con gradiente sutil */
+  --bg-app: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%);
   --bg-card: #ffffff;
-  --bg-card-highlight: #f8fafc;
+  --bg-card-highlight: #f1f5f9;
+  
+  /* Primario más vibrante y visible */
   --primary: #6366f1;
-  --text-main: #1e293b;
-  --text-muted: #64748b;
-  --border-color: rgba(99, 102, 241, 0.15); 
-  --input-bg: rgba(255, 255, 255, 0.8);
-  --snow-color: #cbd5e1;
-  --shadow-color: rgba(99, 102, 241, 0.15); 
+  
+  /* Textos con mejor contraste */
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  
+  /* Borders más definidos */
+  --border-color: rgba(99, 102, 241, 0.25);
+  
+  /* Inputs con background más claro */
+  --input-bg: rgba(255, 255, 255, 0.95);
+  
+  /* Nieve en modo claro más visible */
+  --snow-color: #94a3b8;
+  
+  /* Sombras más pronunciadas para profundidad */
+  --shadow-color: rgba(99, 102, 241, 0.2);
 }
 
 /* --- FIX iOS & BASE --- */
 html {
-  background-color: var(--bg-app); 
+  background-color: var(--bg-app);
   height: 100%;
-  
+
   /* IMPORTANTE: 'auto' permite el "pull-to-refresh" nativo de iOS */
-  overscroll-behavior-y: auto; 
-  
+  overscroll-behavior-y: auto;
+
   /* Evita zoom automático al rotar */
   -webkit-text-size-adjust: 100%;
 }
 
 body {
   @apply bg-background text-text-main min-h-screen overflow-x-hidden font-sans transition-colors duration-300;
-  
-  background-image: 
-    radial-gradient(circle at 50% 0%, var(--primary) 0%, transparent 25%, transparent 100%);
+
+  background-image: radial-gradient(
+    circle at 50% 0%,
+    var(--primary) 0%,
+    transparent 25%,
+    transparent 100%
+  );
   background-size: 100% 60vh;
   background-repeat: no-repeat;
-  opacity: 1; 
+  opacity: 1;
   /* Asegura que nada se salga horizontalmente */
   width: 100%;
   position: relative;
@@ -58,17 +75,26 @@ body {
 
 /* Fondos complejos */
 :root:not(.light) body {
-    background-image: 
-    radial-gradient(circle at 50% 0%, #2e1065 0%, transparent 40%),
+  background-image: radial-gradient(
+      circle at 50% 0%,
+      #2e1065 0%,
+      transparent 40%
+    ),
     radial-gradient(circle at 0% 100%, #1e1b4b 0%, transparent 30%);
 }
 
 .light body {
-    background-image: 
-    radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.15) 0%, transparent 40%);
+  background-image: radial-gradient(
+    circle at 50% 0%,
+    rgba(99, 102, 241, 0.15) 0%,
+    transparent 40%
+  );
 }
 
-h1, h2, h3, .font-display {
+h1,
+h2,
+h3,
+.font-display {
   font-family: var(--font-space), sans-serif;
   letter-spacing: -0.02em;
 }
@@ -79,10 +105,10 @@ h1, h2, h3, .font-display {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--bg-app); 
+  background: var(--bg-app);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--primary); 
+  background: var(--primary);
   border-radius: 4px;
 }
 
@@ -93,9 +119,9 @@ h1, h2, h3, .font-display {
     outline-none transition-all duration-300 shadow-sm
     focus:border-primary focus:ring-1 focus:ring-primary 
     focus:shadow-[0_0_20px_rgba(139,92,246,0.25)];
-    
+
     /* FIX CRÍTICO iOS: Forzar 16px evita que el iPhone haga zoom al escribir */
-    font-size: 16px !important; 
+    font-size: 16px !important;
   }
 
   .cyber-input::placeholder {
@@ -103,15 +129,22 @@ h1, h2, h3, .font-display {
     opacity: 0.5;
   }
 
-  /* Nuevo Panel Glassmorphism Realista */
+  /* Glassmorphism INTENSO - Fase 1 */
   .glass-panel {
-    @apply backdrop-blur-2xl border border-white/10 shadow-2xl;
-    background-color: color-mix(in srgb, var(--bg-card), transparent 40%);
+    @apply backdrop-blur-3xl border shadow-2xl;
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--bg-card), transparent 20%) 0%,
+      color-mix(in srgb, var(--bg-card), transparent 40%) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 32px 0 rgba(139, 92, 246, 0.15),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
   }
-  
-  /* Botón Principal */
+
+  /* Botón Principal con Microinteracciones */
   .btn-primary {
-    @apply w-full py-3.5 px-4 rounded-xl font-bold text-white shadow-lg shadow-purple-500/30 transition-all active:scale-95 bg-gradient-to-r from-purple-600 to-pink-600 hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed border border-white/10;
+    @apply w-full py-3.5 px-4 rounded-xl font-bold text-white shadow-lg shadow-purple-500/30 transition-all duration-300 active:scale-95 bg-gradient-to-r from-purple-600 to-pink-600 hover:brightness-110 hover:shadow-xl hover:shadow-purple-500/40 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed border border-white/10;
   }
 
   .input-label {
@@ -126,7 +159,7 @@ h1, h2, h3, .font-display {
   .menu-item {
     @apply w-full text-left px-4 py-3 text-sm text-text-muted hover:text-text-main rounded-xl flex items-center gap-3 transition-all duration-200 hover:bg-surface-highlight border border-transparent hover:border-border active:scale-[0.98];
   }
-  
+
   .menu-icon-box {
     @apply w-8 h-8 rounded-lg flex items-center justify-center bg-background border border-border text-lg shadow-sm group-hover:shadow-md transition-shadow text-primary;
   }
@@ -137,7 +170,7 @@ h1, h2, h3, .font-display {
 .animate-fall {
   animation: fall 10s linear infinite;
   color: var(--snow-color);
-  text-shadow: 0 0 5px var(--bg-card); 
+  text-shadow: 0 0 5px var(--bg-card);
 }
 
 .animate-menu-in {
@@ -146,8 +179,12 @@ h1, h2, h3, .font-display {
 
 /* Shimmer */
 @keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 .animate-shimmer {
@@ -155,20 +192,35 @@ h1, h2, h3, .font-display {
 }
 
 @keyframes menuIn {
-  0% { opacity: 0; transform: scale(0.95) translateY(-10px); }
-  100% { opacity: 1; transform: scale(1) translateY(0); }
+  0% {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 /* --- 1. SHAKE EFFECT (ERROR) --- */
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-8px) rotate(-1deg); }
-  50% { transform: translateX(8px) rotate(1deg); }
-  75% { transform: translateX(-4px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-8px) rotate(-1deg);
+  }
+  50% {
+    transform: translateX(8px) rotate(1deg);
+  }
+  75% {
+    transform: translateX(-4px);
+  }
 }
 
 .animate-shake {
-  animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+  animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
   border-color: #ef4444 !important; /* Rojo de error */
   box-shadow: 0 0 20px rgba(239, 68, 68, 0.4) !important;
 }
@@ -180,65 +232,269 @@ h1, h2, h3, .font-display {
 }
 
 .grinch-mode body {
-    overflow: hidden;
+  overflow: hidden;
 }
 
 /* --- 3. SKELETON SHIMMER --- */
 .skeleton-shimmer {
-    background: linear-gradient(90deg, 
-        rgba(255,255,255, 0.03) 25%, 
-        rgba(255,255,255, 0.08) 37%, 
-        rgba(255,255,255, 0.03) 63%
-    );
-    background-size: 400% 100%;
-    animation: skeleton-loading 1.4s ease infinite;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 25%,
+    rgba(255, 255, 255, 0.08) 37%,
+    rgba(255, 255, 255, 0.03) 63%
+  );
+  background-size: 400% 100%;
+  animation: skeleton-loading 1.4s ease infinite;
 }
 
 @keyframes skeleton-loading {
-    0% { background-position: 100% 50%; }
-    100% { background-position: 0 50%; }
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
 }
 
 /* --- 4. VIEW TRANSITIONS --- */
 .slide-in-right {
-    animation: slideInRight 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  animation: slideInRight 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 .slide-in-left {
-    animation: slideInLeft 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  animation: slideInLeft 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
 @keyframes slideInRight {
-    from { opacity: 0; transform: translateX(20px); }
-    to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes slideInLeft {
-    from { opacity: 0; transform: translateX(-20px); }
-    to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 /* --- 5. SCROLLBAR ESTILIZADO (Para la WishList) --- */
-.scrollbar-thin::-webkit-scrollbar { height: 6px; }
-.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-.scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(139, 92, 246, 0.2); border-radius: 10px; }
-.scrollbar-thin::-webkit-scrollbar-thumb:hover { background: rgba(139, 92, 246, 0.5); }
+.scrollbar-thin::-webkit-scrollbar {
+  height: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.2);
+  border-radius: 10px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.5);
+}
 
 /* --- 6. CANDY CANE BAR --- */
 @keyframes barberpole {
-    100% { background-position: 100% 100%; }
+  100% {
+    background-position: 100% 100%;
+  }
 }
 
 .candy-stripe {
-    background-image: linear-gradient(
-        45deg, 
-        rgba(255, 255, 255, 0.15) 25%, 
-        transparent 25%, 
-        transparent 50%, 
-        rgba(255, 255, 255, 0.15) 50%, 
-        rgba(255, 255, 255, 0.15) 75%, 
-        transparent 75%, 
-        transparent
-    );
-    background-size: 1rem 1rem;
-    animation: barberpole 1s linear infinite;
+  background-image: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.15) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.15) 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 1rem 1rem;
+  animation: barberpole 1s linear infinite;
+}
+
+/* --- 7. ANIMACIONES ESCALONADAS --- */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stagger-item {
+  animation: fadeInUp 0.5s ease-out both;
+}
+
+/* Delays incrementales para efecto cascada */
+.stagger-item:nth-child(1) {
+  animation-delay: 0.05s;
+}
+.stagger-item:nth-child(2) {
+  animation-delay: 0.1s;
+}
+.stagger-item:nth-child(3) {
+  animation-delay: 0.15s;
+}
+.stagger-item:nth-child(4) {
+  animation-delay: 0.2s;
+}
+.stagger-item:nth-child(5) {
+  animation-delay: 0.25s;
+}
+.stagger-item:nth-child(6) {
+  animation-delay: 0.3s;
+}
+.stagger-item:nth-child(7) {
+  animation-delay: 0.35s;
+}
+.stagger-item:nth-child(8) {
+  animation-delay: 0.4s;
+}
+.stagger-item:nth-child(9) {
+  animation-delay: 0.45s;
+}
+.stagger-item:nth-child(10) {
+  animation-delay: 0.5s;
+}
+
+/* --- 8. MICROINTERACCIONES --- */
+.hover-lift {
+  @apply transition-all duration-300;
+}
+
+.hover-lift:hover {
+  @apply -translate-y-1 shadow-xl;
+}
+
+.hover-scale {
+  @apply transition-transform duration-300;
+}
+
+.hover-scale:hover {
+  @apply scale-105;
+}
+
+.hover-glow {
+  @apply transition-all duration-300;
+}
+
+.hover-glow:hover {
+  filter: drop-shadow(0 0 8px currentColor);
+}
+
+/* --- 9. GRADIENT BORDERS ANIMADOS --- */
+@property --gradient-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes rotateGradient {
+  to {
+    --gradient-angle: 360deg;
+  }
+}
+
+.gradient-border {
+  position: relative;
+  --gradient-angle: 0deg;
+  animation: rotateGradient 6s linear infinite;
+}
+
+.gradient-border::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  padding: 2px;
+  background: linear-gradient(
+    var(--gradient-angle),
+    #a855f7,
+    #ec4899,
+    #f59e0b,
+    #10b981,
+    #3b82f6,
+    #a855f7
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.6;
+  z-index: -1;
+}
+
+/* --- 10. TRANSICIONES SUAVES Y TAB SWITCHING --- */
+.tab-content-enter {
+  animation: slideInFade 0.4s ease-out;
+}
+
+@keyframes slideInFade {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --- 11. BADGES MEJORADOS --- */
+.badge-pulse {
+  animation: badgePulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes badgePulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.badge-bounce {
+  animation: badgeBounce 1s infinite;
+}
+
+@keyframes badgeBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+/* --- 12. SMOOTH SCROLLING --- */
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .stagger-item,
+  .hover-lift,
+  .hover-scale,
+  .badge-pulse,
+  .badge-bounce {
+    animation: none !important;
+    transition: none !important;
+  }
 }
